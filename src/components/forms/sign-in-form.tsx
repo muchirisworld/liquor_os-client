@@ -22,7 +22,7 @@ const SignInForm = () => {
       email: '',
       password: '',
     } as TSignInFormSchema,
-    onSubmit: async ({ value }) => {
+    onSubmit: ({ value }) => {
       console.log(value)
     },
   })
@@ -58,13 +58,13 @@ const SignInForm = () => {
                   onBlur={handleBlur}
                   onChange={(e) => handleChange(e.target.value)}
                 />
-            </InputGroup>
+              </InputGroup>
 
-            {invalid &&
+              {invalid &&
                 state.meta.errors.map((e, idx) => (
-                <p key={idx} className="text-sm text-destructive">
+                  <p key={idx} className="text-sm text-destructive">
                     {e?.message}
-                </p>
+                  </p>
                 ))}
             </div>
           )
@@ -119,15 +119,14 @@ const SignInForm = () => {
                     )}
                   </InputGroupButton>
                 </InputGroupAddon>
-
               </InputGroup>
-              
-                {invalid &&
-                  state.meta.errors.map((e, idx) => (
-                    <p key={idx} className="text-sm text-destructive">
-                      {e?.message}
-                    </p>
-                  ))}
+
+              {invalid &&
+                state.meta.errors.map((e, idx) => (
+                  <p key={idx} className="text-sm text-destructive">
+                    {e?.message}
+                  </p>
+                ))}
             </div>
           )
         }}
