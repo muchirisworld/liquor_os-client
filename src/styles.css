@@ -3,6 +3,8 @@
 @import 'shadcn/tailwind.css';
 @import '@fontsource-variable/jetbrains-mono';
 
+@import '@clerk/themes/shadcn.css';
+
 @custom-variant dark (&:is(.dark *));
 
 :root {
