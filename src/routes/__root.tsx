@@ -1,3 +1,4 @@
+import { shadcn } from '@clerk/themes'
 import { ClerkProvider } from '@clerk/tanstack-react-start'
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
@@ -32,7 +33,14 @@ export const Route = createRootRoute({
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider
+      appearance={{
+        theme: shadcn,
+        layout: {
+          socialButtonsPlacement: 'bottom'
+        }
+      }}
+    >
       <html lang="en">
         <head>
           <HeadContent />

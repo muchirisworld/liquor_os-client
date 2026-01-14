@@ -50,7 +50,9 @@ function RouteComponent() {
           Home
         </Button>
         
-        <Outlet />
+        <div className='w-full flex items-center justify-center'>
+          <Outlet />
+        </div>
 
       </div>
     </main>
