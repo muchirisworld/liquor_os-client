@@ -37,8 +37,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       appearance={{
         theme: shadcn,
         layout: {
-          socialButtonsPlacement: 'bottom'
-        }
+          socialButtonsPlacement: 'bottom',
+        },
       }}
     >
       <html lang="en">
