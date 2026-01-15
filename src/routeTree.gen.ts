@@ -9,11 +9,21 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
 import { Route as AuthRouteRouteImport } from './routes/auth/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as DashboardOrdersIndexRouteImport } from './routes/dashboard/orders/index'
+import { Route as DashboardInventoryIndexRouteImport } from './routes/dashboard/inventory/index'
+import { Route as DashboardClientsIndexRouteImport } from './routes/dashboard/clients/index'
 import { Route as AuthSignUpIndexRouteImport } from './routes/auth/sign-up/index'
 import { Route as AuthSignInIndexRouteImport } from './routes/auth/sign-in/index'
 
+const DashboardRouteRoute = DashboardRouteRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRouteRoute = AuthRouteRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -23,6 +33,26 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardIndexRoute = DashboardIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardOrdersIndexRoute = DashboardOrdersIndexRouteImport.update({
+  id: '/orders/',
+  path: '/orders/',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardInventoryIndexRoute = DashboardInventoryIndexRouteImport.update({
+  id: '/inventory/',
+  path: '/inventory/',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardClientsIndexRoute = DashboardClientsIndexRouteImport.update({
+  id: '/clients/',
+  path: '/clients/',
+  getParentRoute: () => DashboardRouteRoute,
 } as any)
 const AuthSignUpIndexRoute = AuthSignUpIndexRouteImport.update({
   id: '/sign-up/',
@@ -38,37 +68,86 @@ const AuthSignInIndexRoute = AuthSignInIndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteRouteWithChildren
+  '/dashboard': typeof DashboardRouteRouteWithChildren
+  '/dashboard/': typeof DashboardIndexRoute
   '/auth/sign-in': typeof AuthSignInIndexRoute
   '/auth/sign-up': typeof AuthSignUpIndexRoute
+  '/dashboard/clients': typeof DashboardClientsIndexRoute
+  '/dashboard/inventory': typeof DashboardInventoryIndexRoute
+  '/dashboard/orders': typeof DashboardOrdersIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteRouteWithChildren
+  '/dashboard': typeof DashboardIndexRoute
   '/auth/sign-in': typeof AuthSignInIndexRoute
   '/auth/sign-up': typeof AuthSignUpIndexRoute
+  '/dashboard/clients': typeof DashboardClientsIndexRoute
+  '/dashboard/inventory': typeof DashboardInventoryIndexRoute
+  '/dashboard/orders': typeof DashboardOrdersIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteRouteWithChildren
+  '/dashboard': typeof DashboardRouteRouteWithChildren
+  '/dashboard/': typeof DashboardIndexRoute
   '/auth/sign-in/': typeof AuthSignInIndexRoute
   '/auth/sign-up/': typeof AuthSignUpIndexRoute
+  '/dashboard/clients/': typeof DashboardClientsIndexRoute
+  '/dashboard/inventory/': typeof DashboardInventoryIndexRoute
+  '/dashboard/orders/': typeof DashboardOrdersIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/auth/sign-in' | '/auth/sign-up'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/dashboard'
+    | '/dashboard/'
+    | '/auth/sign-in'
+    | '/auth/sign-up'
+    | '/dashboard/clients'
+    | '/dashboard/inventory'
+    | '/dashboard/orders'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/auth/sign-in' | '/auth/sign-up'
-  id: '__root__' | '/' | '/auth' | '/auth/sign-in/' | '/auth/sign-up/'
+  to:
+    | '/'
+    | '/auth'
+    | '/dashboard'
+    | '/auth/sign-in'
+    | '/auth/sign-up'
+    | '/dashboard/clients'
+    | '/dashboard/inventory'
+    | '/dashboard/orders'
+  id:
+    | '__root__'
+    | '/'
+    | '/auth'
+    | '/dashboard'
+    | '/dashboard/'
+    | '/auth/sign-in/'
+    | '/auth/sign-up/'
+    | '/dashboard/clients/'
+    | '/dashboard/inventory/'
+    | '/dashboard/orders/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRouteRoute: typeof AuthRouteRouteWithChildren
+  DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -82,6 +161,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/': {
+      id: '/dashboard/'
+      path: '/'
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof DashboardIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/orders/': {
+      id: '/dashboard/orders/'
+      path: '/orders'
+      fullPath: '/dashboard/orders'
+      preLoaderRoute: typeof DashboardOrdersIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/inventory/': {
+      id: '/dashboard/inventory/'
+      path: '/inventory'
+      fullPath: '/dashboard/inventory'
+      preLoaderRoute: typeof DashboardInventoryIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/clients/': {
+      id: '/dashboard/clients/'
+      path: '/clients'
+      fullPath: '/dashboard/clients'
+      preLoaderRoute: typeof DashboardClientsIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
     '/auth/sign-up/': {
       id: '/auth/sign-up/'
@@ -114,9 +221,28 @@ const AuthRouteRouteWithChildren = AuthRouteRoute._addFileChildren(
   AuthRouteRouteChildren,
 )
 
+interface DashboardRouteRouteChildren {
+  DashboardIndexRoute: typeof DashboardIndexRoute
+  DashboardClientsIndexRoute: typeof DashboardClientsIndexRoute
+  DashboardInventoryIndexRoute: typeof DashboardInventoryIndexRoute
+  DashboardOrdersIndexRoute: typeof DashboardOrdersIndexRoute
+}
+
+const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
+  DashboardIndexRoute: DashboardIndexRoute,
+  DashboardClientsIndexRoute: DashboardClientsIndexRoute,
+  DashboardInventoryIndexRoute: DashboardInventoryIndexRoute,
+  DashboardOrdersIndexRoute: DashboardOrdersIndexRoute,
+}
+
+const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(
+  DashboardRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRouteRoute: AuthRouteRouteWithChildren,
+  DashboardRouteRoute: DashboardRouteRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
