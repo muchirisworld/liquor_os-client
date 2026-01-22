@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router'
 import DesktopNav from './desktop-nav'
 import MobileNav from './mobile-nav'
 import { useScroll } from '@/hooks/use-scroll'
@@ -5,7 +6,6 @@ import { Logo } from '@/routes/_components/header/logo'
 import { Button } from '@/components/ui/button'
 
 import { cn } from '@/lib/utils'
-import { Link } from '@tanstack/react-router'
 
 const Header = ({ isAuthenticated }: { isAuthenticated: boolean }) => {
   const scrolled = useScroll(10)
@@ -24,16 +24,18 @@ const Header = ({ isAuthenticated }: { isAuthenticated: boolean }) => {
           </a>
           <DesktopNav />
         </div>
-        {isAuthenticated ?
-          <Link to='/dashboard'>
-            <Button className='cursor-pointer' variant="link">Dashboard</Button>
+        {isAuthenticated ? (
+          <Link to="/dashboard">
+            <Button className="cursor-pointer" variant="link">
+              Dashboard
+            </Button>
           </Link>
-          :
+        ) : (
           <div className="hidden items-center gap-2 md:flex">
             <Button variant="outline">Sign In</Button>
             <Button>Get Started</Button>
           </div>
-        }
+        )}
         <MobileNav />
       </nav>
     </header>

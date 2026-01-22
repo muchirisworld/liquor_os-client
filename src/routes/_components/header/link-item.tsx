@@ -1,5 +1,5 @@
 import { HugeiconsIcon } from '@hugeicons/react'
-import type { IconSvgElement } from '@hugeicons/react';
+import type { IconSvgElement } from '@hugeicons/react'
 import { cn } from '@/lib/utils'
 
 export type LinkItemType = {
