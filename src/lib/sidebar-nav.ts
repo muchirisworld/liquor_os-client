@@ -64,10 +64,9 @@ export function useSidebarItems(): Array<SidebarNavItem> {
   })
 
   return (
-    Object.entries(dashboardNavConfig) as Array<[
-      DashboardRoute,
-      SidebarNavItemConfig,
-    ]>
+    Object.entries(dashboardNavConfig) as Array<
+      [DashboardRoute, SidebarNavItemConfig]
+    >
   )
     .filter(([_, x]) => x.kind == 'item')
     .map(([route, item]) => ({
