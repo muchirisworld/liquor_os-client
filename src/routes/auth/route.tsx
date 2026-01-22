@@ -1,11 +1,12 @@
-import { Button } from '@/components/ui/button'
-import { FloatingPaths } from '@/components/ui/floating-paths'
-import { createFileRoute, Outlet } from '@tanstack/react-router'
+import { Outlet, createFileRoute } from '@tanstack/react-router'
 import { ChevronLeft } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
+import { FloatingPaths } from '@/components/ui/floating-paths'
+import { Button } from '@/components/ui/button'
 
 export const Route = createFileRoute('/auth')({
   component: RouteComponent,
+
 })
 
 function RouteComponent() {
@@ -49,11 +50,10 @@ function RouteComponent() {
           <HugeiconsIcon icon={ChevronLeft} />
           Home
         </Button>
-        
-        <div className='w-full flex items-center justify-center'>
+
+        <div className="w-full flex items-center justify-center">
           <Outlet />
         </div>
-
       </div>
     </main>
   )

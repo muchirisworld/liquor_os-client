@@ -1,8 +1,21 @@
 import { createFileRoute } from '@tanstack/react-router'
+import Header from './_components/header'
 import { ComponentExample } from '@/components/component-example'
+import { checkAuth } from '@/server/auth/auth'
 
-export const Route = createFileRoute('/')({ component: App })
+export const Route = createFileRoute('/')({
+  beforeLoad: async () => {
+    return checkAuth()
+  },
+  component: App
+})
 
 function App() {
-  return <ComponentExample />
+const { isAuthenticated } = Route.useRouteContext()
+  return (
+    <>
+      <Header isAuthenticated={isAuthenticated} />
+      <ComponentExample />
+    </>
+  )
 }
