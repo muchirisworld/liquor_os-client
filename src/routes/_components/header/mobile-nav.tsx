@@ -75,7 +75,7 @@ const MobileNav = () => {
                 'data-[slot=open]:zoom-in-97 ease-out data-[slot=open]:animate-in',
                 'size-full overflow-y-auto overflow-x-hidden p-4',
               )}
-              data-slot={open ? 'open' : 'closed'}
+              data-slot={'open'}
             >
               <div className="flex w-full flex-col gap-y-2">
                 <span className="text-sm">Product</span>
