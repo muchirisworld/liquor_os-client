@@ -10,11 +10,6 @@ import {
   SidebarMenuItem,
   useSidebar
 } from "@/components/ui/sidebar"
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useSidebarItems } from "@/lib/sidebar-nav"
 import { Command } from "@hugeicons/core-free-icons"
