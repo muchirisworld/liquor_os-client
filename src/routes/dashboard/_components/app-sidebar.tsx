@@ -1,39 +1,41 @@
-import { Button } from "@/components/ui/button"
+import { Command } from '@hugeicons/core-free-icons'
+import { HugeiconsIcon } from '@hugeicons/react'
+import { Link } from '@tanstack/react-router'
+import { UserButton } from '@clerk/tanstack-react-start'
+import { useSidebarItems } from '@/lib/sidebar-nav'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
-import { useSidebarItems } from "@/lib/sidebar-nav"
-import { Command } from "@hugeicons/core-free-icons"
-import { HugeiconsIcon } from '@hugeicons/react'
-import { Link } from "@tanstack/react-router"
-
+  useSidebar,
+} from '@/components/ui/sidebar'
 
 const AppSidebar = () => {
+  const { open } = useSidebar()
   const sidebarNavItems = useSidebarItems()
-  const mainNavItems = sidebarNavItems.filter((x) => (x.kind == "item"))
+  const mainNavItems = sidebarNavItems.filter((x) => x.kind == 'item')
 
   return (
-    <Sidebar
-      collapsible="icon"
-    >
+    <Sidebar collapsible="icon">
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <Button
-              size="icon"
-              className="cursor-pointer"
-            >
+            <SidebarMenuButton className="cursor-pointer">
               <div>
                 <HugeiconsIcon icon={Command} />
               </div>
-            </Button>
+            </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
@@ -44,21 +46,41 @@ const AppSidebar = () => {
             <SidebarMenu>
               {mainNavItems.map((item) => (
                 <Link to={item.url} key={item.title} className="mb-1">
-                  <SidebarMenuItem className="flex items-center">
-                    <SidebarMenuButton
-                      isActive={item.isActive}
-                      className={item.isActive ? "border" : "border border-transparent"}
-                    >
-                      <HugeiconsIcon icon={item.icon} />
-                      <p className="">{item.title}</p>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+                  <Tooltip key={item.title}>
+                    <SidebarMenuItem>
+                      <TooltipTrigger
+                        className="w-full"
+                        render={
+                          <SidebarMenuButton
+                            isActive={item.isActive}
+                            className={`cursor-pointer border ${!item.isActive && 'border-transparent'}`}
+                          >
+                            <HugeiconsIcon icon={item.icon} />
+                            {open && <span className="">{item.title}</span>}
+                          </SidebarMenuButton>
+                        }
+                      />
+                      {!open && (
+                        <TooltipContent side="right">
+                          {item.title}
+                        </TooltipContent>
+                      )}
+                    </SidebarMenuItem>
+                  </Tooltip>
                 </Link>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
+      <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <UserButton />
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   )
 }

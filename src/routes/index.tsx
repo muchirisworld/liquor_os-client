@@ -7,11 +7,11 @@ export const Route = createFileRoute('/')({
   beforeLoad: async () => {
     return checkAuth()
   },
-  component: App
+  component: App,
 })
 
 function App() {
-const { isAuthenticated } = Route.useRouteContext()
+  const { isAuthenticated } = Route.useRouteContext()
   return (
     <>
       <Header isAuthenticated={isAuthenticated} />
