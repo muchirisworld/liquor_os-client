@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 
 export const Route = createFileRoute('/auth')({
   component: RouteComponent,
+
 })
 
 function RouteComponent() {
