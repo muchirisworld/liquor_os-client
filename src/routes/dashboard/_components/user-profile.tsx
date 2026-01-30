@@ -1,9 +1,11 @@
+import { useEffect } from 'react';
 import { DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuPortal, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '@/components/ui/dropdown-menu';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useAuth } from '@clerk/tanstack-react-start';
 import { Bell, Card, LogoutIcon, SettingsIcon, UserIcon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react'
 import { Label } from '@/components/ui/label';
+import useThemeStore from '../../../lib/themeStore';
 
 type ProfileDropdownItem = {
   icon: IconSvgElement,
@@ -44,6 +46,35 @@ const profileDropdownItems: ProfileDropdownItem[] = [
 
 export function UserProfile() {
     const { signOut } = useAuth();
+    const theme = useThemeStore((s: any) => s.theme);
+    const setTheme = useThemeStore((s: any) => s.setTheme);
+
+    useEffect(() => {
+      // initialize theme on mount (reads localStorage and applies class)
+      try {
+        useThemeStore.getState().init();
+      } catch (e) {}
+    }, []);
+
+    const handleThemeChange = (value: unknown) => {
+      const strValue = String(value);
+      switch (strValue) {
+        case '1':
+          setTheme('light');
+          break;
+        case '2':
+          setTheme('dark');
+          break;
+        case '3':
+          setTheme('system');
+          break;
+        default:
+          setTheme('light');
+      }
+    };
+
+    const radioValue = theme === 'light' ? '1' : theme === 'dark' ? '2' : '3';
+
   return (
     <DropdownMenuContent className={"w-full"} side='right'>
       <DropdownMenuGroup>
@@ -64,7 +95,7 @@ export function UserProfile() {
               <span>Theme</span>
               <DropdownMenuPortal>
                 <DropdownMenuSubContent>
-                  <RadioGroup className={"gap-0"}>
+                  <RadioGroup className={"gap-0"} value={radioValue} onValueChange={handleThemeChange}>
                     <DropdownMenuItem className="flex items-center hover:bg-muted">
                       <RadioGroupItem id="theme-1" value="1" />
                       <Label htmlFor="theme-1">Light</Label>
