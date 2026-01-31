@@ -18,6 +18,8 @@ import { Route as DashboardInventoryIndexRouteImport } from './routes/dashboard/
 import { Route as DashboardClientsIndexRouteImport } from './routes/dashboard/clients/index'
 import { Route as AuthSignUpIndexRouteImport } from './routes/auth/sign-up/index'
 import { Route as AuthSignInIndexRouteImport } from './routes/auth/sign-in/index'
+import { Route as AuthCreateOrgIndexRouteImport } from './routes/auth/create-org/index'
+import { Route as AuthSignInTasksChooseOrganizationIndexRouteImport } from './routes/auth/sign-in/tasks/choose-organization/index'
 
 const DashboardRouteRoute = DashboardRouteRouteImport.update({
   id: '/dashboard',
@@ -64,27 +66,42 @@ const AuthSignInIndexRoute = AuthSignInIndexRouteImport.update({
   path: '/sign-in/',
   getParentRoute: () => AuthRouteRoute,
 } as any)
+const AuthCreateOrgIndexRoute = AuthCreateOrgIndexRouteImport.update({
+  id: '/create-org/',
+  path: '/create-org/',
+  getParentRoute: () => AuthRouteRoute,
+} as any)
+const AuthSignInTasksChooseOrganizationIndexRoute =
+  AuthSignInTasksChooseOrganizationIndexRouteImport.update({
+    id: '/sign-in/tasks/choose-organization/',
+    path: '/sign-in/tasks/choose-organization/',
+    getParentRoute: () => AuthRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteRouteWithChildren
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/dashboard/': typeof DashboardIndexRoute
+  '/auth/create-org': typeof AuthCreateOrgIndexRoute
   '/auth/sign-in': typeof AuthSignInIndexRoute
   '/auth/sign-up': typeof AuthSignUpIndexRoute
   '/dashboard/clients': typeof DashboardClientsIndexRoute
   '/dashboard/inventory': typeof DashboardInventoryIndexRoute
   '/dashboard/orders': typeof DashboardOrdersIndexRoute
+  '/auth/sign-in/tasks/choose-organization': typeof AuthSignInTasksChooseOrganizationIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteRouteWithChildren
   '/dashboard': typeof DashboardIndexRoute
+  '/auth/create-org': typeof AuthCreateOrgIndexRoute
   '/auth/sign-in': typeof AuthSignInIndexRoute
   '/auth/sign-up': typeof AuthSignUpIndexRoute
   '/dashboard/clients': typeof DashboardClientsIndexRoute
   '/dashboard/inventory': typeof DashboardInventoryIndexRoute
   '/dashboard/orders': typeof DashboardOrdersIndexRoute
+  '/auth/sign-in/tasks/choose-organization': typeof AuthSignInTasksChooseOrganizationIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -92,11 +109,13 @@ export interface FileRoutesById {
   '/auth': typeof AuthRouteRouteWithChildren
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/dashboard/': typeof DashboardIndexRoute
+  '/auth/create-org/': typeof AuthCreateOrgIndexRoute
   '/auth/sign-in/': typeof AuthSignInIndexRoute
   '/auth/sign-up/': typeof AuthSignUpIndexRoute
   '/dashboard/clients/': typeof DashboardClientsIndexRoute
   '/dashboard/inventory/': typeof DashboardInventoryIndexRoute
   '/dashboard/orders/': typeof DashboardOrdersIndexRoute
+  '/auth/sign-in/tasks/choose-organization/': typeof AuthSignInTasksChooseOrganizationIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -105,32 +124,38 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/dashboard/'
+    | '/auth/create-org'
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/dashboard/clients'
     | '/dashboard/inventory'
     | '/dashboard/orders'
+    | '/auth/sign-in/tasks/choose-organization'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
     | '/dashboard'
+    | '/auth/create-org'
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/dashboard/clients'
     | '/dashboard/inventory'
     | '/dashboard/orders'
+    | '/auth/sign-in/tasks/choose-organization'
   id:
     | '__root__'
     | '/'
     | '/auth'
     | '/dashboard'
     | '/dashboard/'
+    | '/auth/create-org/'
     | '/auth/sign-in/'
     | '/auth/sign-up/'
     | '/dashboard/clients/'
     | '/dashboard/inventory/'
     | '/dashboard/orders/'
+    | '/auth/sign-in/tasks/choose-organization/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -204,17 +229,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthSignInIndexRouteImport
       parentRoute: typeof AuthRouteRoute
     }
+    '/auth/create-org/': {
+      id: '/auth/create-org/'
+      path: '/create-org'
+      fullPath: '/auth/create-org'
+      preLoaderRoute: typeof AuthCreateOrgIndexRouteImport
+      parentRoute: typeof AuthRouteRoute
+    }
+    '/auth/sign-in/tasks/choose-organization/': {
+      id: '/auth/sign-in/tasks/choose-organization/'
+      path: '/sign-in/tasks/choose-organization'
+      fullPath: '/auth/sign-in/tasks/choose-organization'
+      preLoaderRoute: typeof AuthSignInTasksChooseOrganizationIndexRouteImport
+      parentRoute: typeof AuthRouteRoute
+    }
   }
 }
 
 interface AuthRouteRouteChildren {
+  AuthCreateOrgIndexRoute: typeof AuthCreateOrgIndexRoute
   AuthSignInIndexRoute: typeof AuthSignInIndexRoute
   AuthSignUpIndexRoute: typeof AuthSignUpIndexRoute
+  AuthSignInTasksChooseOrganizationIndexRoute: typeof AuthSignInTasksChooseOrganizationIndexRoute
 }
 
 const AuthRouteRouteChildren: AuthRouteRouteChildren = {
+  AuthCreateOrgIndexRoute: AuthCreateOrgIndexRoute,
   AuthSignInIndexRoute: AuthSignInIndexRoute,
   AuthSignUpIndexRoute: AuthSignUpIndexRoute,
+  AuthSignInTasksChooseOrganizationIndexRoute:
+    AuthSignInTasksChooseOrganizationIndexRoute,
 }
 
 const AuthRouteRouteWithChildren = AuthRouteRoute._addFileChildren(
