@@ -1,7 +1,7 @@
 import { Command } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Link } from '@tanstack/react-router'
-import { useUser } from '@clerk/tanstack-react-start'
+import { OrganizationSwitcher, useUser } from '@clerk/tanstack-react-start'
 import { UserProfile } from './user-profile'
 import { useSidebarItems } from '@/lib/sidebar-nav'
 import {
@@ -40,9 +40,11 @@ const AppSidebar = () => {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton className="cursor-pointer">
-              <div>
+              {open ?
+              <OrganizationSwitcher />
+              : <div>
                 <HugeiconsIcon icon={Command} />
-              </div>
+              </div>}
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
