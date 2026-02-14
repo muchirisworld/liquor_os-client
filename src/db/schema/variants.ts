@@ -13,6 +13,7 @@ import { products } from "./products"
 import { stocks } from "./stocks"
 import { stores } from "./stores"
 import { lifecycleDates } from "./utils"
+import { tags } from "./tags"
 
 // store variants
 export const variants = pgTable(
@@ -111,3 +112,37 @@ export const productVariantValuesRelations = relations(
 
 export type ProductVariantValue = typeof productVariantValues.$inferSelect
 export type NewProductVariantValue = typeof productVariantValues.$inferInsert
+
+export const variantTags = pgTable(
+  "variant_tags",
+  {
+    variantId: uuid("variant_id")
+      .references(() => variants.id, { onDelete: "cascade" })
+      .notNull(),
+    tagId: uuid("tag_id")
+      .references(() => tags.id, { onDelete: "cascade" })
+      .notNull(),
+    ...lifecycleDates,
+  },
+  (table) => [
+    primaryKey({
+      name: "variant_tags_pk",
+      columns: [table.variantId, table.tagId],
+    }),
+    index("variant_tags_variant_id_tag_id_idx").on(
+      table.variantId,
+      table.tagId
+    ),
+  ]
+)
+
+export const variantTagsRelations = relations(variantTags, ({ one }) => ({
+  variant: one(variants, {
+    fields: [variantTags.variantId],
+    references: [variants.id],
+  }),
+  tag: one(tags, { fields: [variantTags.tagId], references: [tags.id] }),
+}))
+
+export type VariantTag = typeof variantTags.$inferSelect
+export type NewVariantTag = typeof variantTags.$inferInsert

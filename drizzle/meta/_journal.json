@@ -8,6 +8,13 @@
       "when": 1771086265562,
       "tag": "0000_acoustic_purple_man",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1771106947034,
+      "tag": "0001_mature_sunfire",
+      "breakpoints": true
     }
   ]
 }

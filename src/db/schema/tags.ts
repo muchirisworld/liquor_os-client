@@ -18,7 +18,6 @@ export const tags = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom().notNull(),
     name: text("name").notNull(),
-    color: text("color").notNull().default("blue"),
     storeId: uuid("store_id")
       .references(() => stores.id, { onDelete: "cascade" })
       .notNull(),
@@ -34,6 +33,9 @@ export const tags = pgTable(
 
 export const tagsRelations = relations(tags, ({ one, many }) => ({
   store: one(stores, { fields: [tags.storeId], references: [stores.id] }),
+  tagOptions: many(tagOptions, {
+    relationName: "tagOptions",
+  }),
   products: many(productTags, {
     relationName: "productTags",
   }),
@@ -72,3 +74,18 @@ export const productTagsRelations = relations(productTags, ({ one }) => ({
 
 export type ProductTag = typeof productTags.$inferSelect
 export type NewProductTag = typeof productTags.$inferInsert
+
+export const tagOptions = pgTable("tag_options", {
+  id: uuid("id").primaryKey().defaultRandom().notNull(),
+  tagId: uuid("tag_id")
+    .references(() => tags.id, { onDelete: "cascade" })
+    .notNull(),
+  name: text("name").notNull(),
+})
+
+export type TagOption = typeof tagOptions.$inferSelect
+export type NewTagOption = typeof tagOptions.$inferInsert
+
+export const tagOptionRelations = relations(tagOptions, ({ one }) => ({
+  parentTag: one(tags, { fields: [tagOptions.tagId], references: [tags.id] }),
+}))
