@@ -2,7 +2,7 @@ import { Link } from '@tanstack/react-router'
 import DesktopNav from './desktop-nav'
 import MobileNav from './mobile-nav'
 import { useScroll } from '@/hooks/use-scroll'
-import { Logo } from '@/routes/_components/header/logo'
+import { Logo } from '@/components/header/logo'
 import { Button } from '@/components/ui/button'
 
 import { cn } from '@/lib/utils'

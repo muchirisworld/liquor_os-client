@@ -16,6 +16,7 @@ import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardOrdersIndexRouteImport } from './routes/dashboard/orders/index'
 import { Route as DashboardInventoryIndexRouteImport } from './routes/dashboard/inventory/index'
 import { Route as DashboardClientsIndexRouteImport } from './routes/dashboard/clients/index'
+import { Route as DashboardCatalogIndexRouteImport } from './routes/dashboard/catalog/index'
 import { Route as AuthSignUpIndexRouteImport } from './routes/auth/sign-up/index'
 import { Route as AuthSignInIndexRouteImport } from './routes/auth/sign-in/index'
 import { Route as AuthCreateOrgIndexRouteImport } from './routes/auth/create-org/index'
@@ -56,6 +57,11 @@ const DashboardClientsIndexRoute = DashboardClientsIndexRouteImport.update({
   path: '/clients/',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
+const DashboardCatalogIndexRoute = DashboardCatalogIndexRouteImport.update({
+  id: '/catalog/',
+  path: '/catalog/',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
 const AuthSignUpIndexRoute = AuthSignUpIndexRouteImport.update({
   id: '/sign-up/',
   path: '/sign-up/',
@@ -86,6 +92,7 @@ export interface FileRoutesByFullPath {
   '/auth/create-org': typeof AuthCreateOrgIndexRoute
   '/auth/sign-in': typeof AuthSignInIndexRoute
   '/auth/sign-up': typeof AuthSignUpIndexRoute
+  '/dashboard/catalog': typeof DashboardCatalogIndexRoute
   '/dashboard/clients': typeof DashboardClientsIndexRoute
   '/dashboard/inventory': typeof DashboardInventoryIndexRoute
   '/dashboard/orders': typeof DashboardOrdersIndexRoute
@@ -98,6 +105,7 @@ export interface FileRoutesByTo {
   '/auth/create-org': typeof AuthCreateOrgIndexRoute
   '/auth/sign-in': typeof AuthSignInIndexRoute
   '/auth/sign-up': typeof AuthSignUpIndexRoute
+  '/dashboard/catalog': typeof DashboardCatalogIndexRoute
   '/dashboard/clients': typeof DashboardClientsIndexRoute
   '/dashboard/inventory': typeof DashboardInventoryIndexRoute
   '/dashboard/orders': typeof DashboardOrdersIndexRoute
@@ -112,6 +120,7 @@ export interface FileRoutesById {
   '/auth/create-org/': typeof AuthCreateOrgIndexRoute
   '/auth/sign-in/': typeof AuthSignInIndexRoute
   '/auth/sign-up/': typeof AuthSignUpIndexRoute
+  '/dashboard/catalog/': typeof DashboardCatalogIndexRoute
   '/dashboard/clients/': typeof DashboardClientsIndexRoute
   '/dashboard/inventory/': typeof DashboardInventoryIndexRoute
   '/dashboard/orders/': typeof DashboardOrdersIndexRoute
@@ -127,6 +136,7 @@ export interface FileRouteTypes {
     | '/auth/create-org'
     | '/auth/sign-in'
     | '/auth/sign-up'
+    | '/dashboard/catalog'
     | '/dashboard/clients'
     | '/dashboard/inventory'
     | '/dashboard/orders'
@@ -139,6 +149,7 @@ export interface FileRouteTypes {
     | '/auth/create-org'
     | '/auth/sign-in'
     | '/auth/sign-up'
+    | '/dashboard/catalog'
     | '/dashboard/clients'
     | '/dashboard/inventory'
     | '/dashboard/orders'
@@ -152,6 +163,7 @@ export interface FileRouteTypes {
     | '/auth/create-org/'
     | '/auth/sign-in/'
     | '/auth/sign-up/'
+    | '/dashboard/catalog/'
     | '/dashboard/clients/'
     | '/dashboard/inventory/'
     | '/dashboard/orders/'
@@ -215,6 +227,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardClientsIndexRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
+    '/dashboard/catalog/': {
+      id: '/dashboard/catalog/'
+      path: '/catalog'
+      fullPath: '/dashboard/catalog'
+      preLoaderRoute: typeof DashboardCatalogIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
     '/auth/sign-up/': {
       id: '/auth/sign-up/'
       path: '/sign-up'
@@ -267,6 +286,7 @@ const AuthRouteRouteWithChildren = AuthRouteRoute._addFileChildren(
 
 interface DashboardRouteRouteChildren {
   DashboardIndexRoute: typeof DashboardIndexRoute
+  DashboardCatalogIndexRoute: typeof DashboardCatalogIndexRoute
   DashboardClientsIndexRoute: typeof DashboardClientsIndexRoute
   DashboardInventoryIndexRoute: typeof DashboardInventoryIndexRoute
   DashboardOrdersIndexRoute: typeof DashboardOrdersIndexRoute
@@ -274,6 +294,7 @@ interface DashboardRouteRouteChildren {
 
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardIndexRoute: DashboardIndexRoute,
+  DashboardCatalogIndexRoute: DashboardCatalogIndexRoute,
   DashboardClientsIndexRoute: DashboardClientsIndexRoute,
   DashboardInventoryIndexRoute: DashboardInventoryIndexRoute,
   DashboardOrdersIndexRoute: DashboardOrdersIndexRoute,

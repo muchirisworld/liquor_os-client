@@ -2,7 +2,7 @@ import { Command } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Link } from '@tanstack/react-router'
 import { OrganizationSwitcher, useUser } from '@clerk/tanstack-react-start'
-import { UserProfile } from './user-profile'
+import { UserProfile } from '../elements/user-profile'
 import { useSidebarItems } from '@/lib/sidebar-nav'
 import {
   Tooltip,

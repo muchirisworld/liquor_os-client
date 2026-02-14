@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import Header from './_components/header'
+import Header from '@/components/header'
 import { ComponentExample } from '@/components/component-example'
 import { checkAuth } from '@/server/auth/auth'
 
