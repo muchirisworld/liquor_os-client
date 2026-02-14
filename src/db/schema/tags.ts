@@ -34,7 +34,7 @@ export const tags = pgTable(
 
 export const tagsRelations = relations(tags, ({ one, many }) => ({
   store: one(stores, { fields: [tags.storeId], references: [stores.id] }),
-  products: many(products, {
+  products: many(productTags, {
     relationName: "productTags",
   }),
 }))
