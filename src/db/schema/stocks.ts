@@ -23,8 +23,8 @@ export const stocksRelations = relations(stocks, ({ one }) => ({
     references: [productVariants.id],
   }),
   productVariantValues: one(productVariantValues, {
-    fields: [stocks.productVariantId],
-    references: [productVariantValues.productVariantId],
+    fields: [stocks.id],
+    references: [productVariantValues.stockId],
   }),
 }))
 
