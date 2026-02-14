@@ -38,11 +38,11 @@ export const stores = pgTable("stores", {
 })
 
 export const storesRelations = relations(stores, ({ many }) => ({
-  products: many(products, { relationName: "storeProducts" }),
-  payments: many(payments, { relationName: "storePayments" }),
-  customers: many(customers, { relationName: "storeCustomers" }),
-  tags: many(tags, { relationName: "storeTags" }),
-  variants: many(variants, { relationName: "storeVariants" }),
+  products: many(products),
+  payments: many(payments),
+  customers: many(customers),
+  tags: many(tags),
+  variants: many(variants),
 }))
 
 export type Store = typeof stores.$inferSelect
