@@ -2,7 +2,7 @@ import * as z from "zod"
 
 export const cartItemSchema = z.object({
   productId: z.string(),
-  quantity: z.number().min(0),
+  quantity: z.number().min(1),
   subcategoryId: z.string().optional(),
 })
 
