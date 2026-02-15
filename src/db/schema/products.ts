@@ -8,7 +8,8 @@ import {
   pgEnum,
   pgTable,
   text,
-  uuid
+  uuid,
+  varchar
 } from "drizzle-orm/pg-core"
 
 import { categories } from "./categories"
@@ -52,7 +53,7 @@ export const products = pgTable(
     inventory: integer("inventory").notNull().default(0),
     rating: integer("rating").notNull().default(0),
     status: productStatusEnum("status").notNull().default("active"),
-    storeId: uuid("store_id")
+    storeId: varchar("store_id")
       .references(() => stores.id, { onDelete: "cascade" })
       .notNull(),
     ...lifecycleDates,

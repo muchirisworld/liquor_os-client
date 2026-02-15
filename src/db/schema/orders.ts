@@ -5,7 +5,8 @@ import {
   json,
   pgTable,
   text,
-  uuid
+  uuid,
+  varchar
 } from "drizzle-orm/pg-core"
 
 import { type CheckoutItemSchema } from "@/lib/validations/cart"
@@ -19,7 +20,7 @@ export const orders = pgTable(
   "orders",
   {
     id: uuid("id").primaryKey().defaultRandom().notNull(),
-    storeId: uuid("store_id")
+    storeId: varchar("store_id")
       .references(() => stores.id, { onDelete: "cascade" })
       .notNull(),
     items: json("items").$type<CheckoutItemSchema[] | null>().default(null),

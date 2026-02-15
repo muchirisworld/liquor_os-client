@@ -12,7 +12,7 @@ export const customers = pgTable(
     email: text("email"),
     storeConnectId: varchar("store_connect_id").unique(), // stripe connect
     stripeCustomerId: varchar("stripe_customer_id").unique().notNull(),
-    storeId: uuid("store_id")
+    storeId: varchar("store_id")
       .references(() => stores.id, { onDelete: "cascade" })
       .notNull(),
     ...lifecycleDates,

@@ -5,7 +5,8 @@ import {
   primaryKey,
   text,
   unique,
-  uuid
+  uuid,
+  varchar
 } from "drizzle-orm/pg-core"
 
 import { products } from "./products"
@@ -18,7 +19,7 @@ export const tags = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom().notNull(),
     name: text("name").notNull(),
-    storeId: uuid("store_id")
+    storeId: varchar("store_id")
       .references(() => stores.id, { onDelete: "cascade" })
       .notNull(),
     ...lifecycleDates,

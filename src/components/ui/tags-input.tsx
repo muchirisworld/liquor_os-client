@@ -1,5 +1,6 @@
 import * as TagsInputPrimitive from "@diceui/tags-input";
-import { X } from "lucide-react";
+import { Cancel } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import type * as React from "react";
 import { cn } from "@/lib/utils";
 
@@ -79,7 +80,7 @@ function TagsInputItem({
         {children}
       </TagsInputPrimitive.ItemText>
       <TagsInputPrimitive.ItemDelete className="size-4 shrink-0 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100">
-        <X className="size-3.5" />
+        <HugeiconsIcon icon={Cancel} className="size-3" />
       </TagsInputPrimitive.ItemDelete>
     </TagsInputPrimitive.Item>
   );
