@@ -38,7 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Save, Trash } from '@hugeicons/core-free-icons'
+import { Save, Trash, PencilIcon, ArrowDown01Icon, ArrowUp01Icon, Add01Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
   Sheet,
@@ -53,10 +53,18 @@ import { Textarea } from '@/components/ui/textarea'
 import {
   getProducts,
   getCategories,
-  getStoreVariants,
   getStoreTags,
   createProduct,
 } from '@/server/queries/products'
+import {
+  getCategoriesWithSubs,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  createSubcategory,
+  updateSubcategory,
+  deleteSubcategory,
+} from '@/server/queries/categories'
 
 export const Route = createFileRoute('/dashboard/catalog/')({
   component: RouteComponent,
@@ -70,7 +78,7 @@ export const Route = createFileRoute('/dashboard/catalog/')({
 // Root page component with tabs
 // ════════════════════════════════════════════════════════════════════════
 function RouteComponent() {
-  const [activeTab, setActiveTab] = useState<'products' | 'tags'>('products')
+  const [activeTab, setActiveTab] = useState<'products' | 'categories' | 'tags'>('products')
 
   return (
     <div className="p-6 max-w-6xl w-full">
@@ -89,6 +97,18 @@ function RouteComponent() {
           )}
         </button>
         <button
+          onClick={() => setActiveTab('categories')}
+          className={`px-4 py-2.5 text-sm font-medium transition-colors relative ${activeTab === 'categories'
+            ? 'text-foreground'
+            : 'text-muted-foreground hover:text-foreground/80'
+            }`}
+        >
+          Categories
+          {activeTab === 'categories' && (
+            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground" />
+          )}
+        </button>
+        <button
           onClick={() => setActiveTab('tags')}
           className={`px-4 py-2.5 text-sm font-medium transition-colors relative ${activeTab === 'tags'
             ? 'text-foreground'
@@ -102,7 +122,9 @@ function RouteComponent() {
         </button>
       </div>
 
-      {activeTab === 'products' ? <ProductsTab /> : <TagsTab />}
+      {activeTab === 'products' && <ProductsTab />}
+      {activeTab === 'categories' && <CategoriesTab />}
+      {activeTab === 'tags' && <TagsTab />}
     </div>
   )
 }
@@ -218,17 +240,19 @@ function ProductsTab() {
 // ════════════════════════════════════════════════════════════════════════
 type WizardStep = 1 | 2 | 3 | 4 | 5
 
-interface VariantValue {
-  value: string
+interface SelectedAxis {
+  id: string
+  name: string
+  values: string[] // value names from tag options
+}
+
+interface VariantCombination {
+  key: string
+  parts: Array<{ axisName: string; value: string }>
+  label: string
   price: string
   quantity: number
   selected: boolean
-}
-
-interface VariantAxis {
-  variantId: string
-  variantName: string
-  values: VariantValue[]
 }
 
 interface WizardData {
@@ -244,7 +268,8 @@ interface WizardData {
   // Step 3
   tagIds: string[]
   // Step 4
-  variantAxes: VariantAxis[]
+  selectedAxes: SelectedAxis[]
+  combinations: VariantCombination[]
 }
 
 const STEP_LABELS: Record<WizardStep, string> = {
@@ -275,18 +300,14 @@ function ProductWizard({
     price: '',
     originalPrice: '',
     tagIds: [],
-    variantAxes: [],
+    selectedAxes: [],
+    combinations: [],
   })
 
   // Fetch supporting data
   const { data: categories } = useSuspenseQuery({
     queryKey: ['categories'],
     queryFn: () => getCategories(),
-  })
-
-  const { data: storeVariants } = useSuspenseQuery({
-    queryKey: ['storeVariants'],
-    queryFn: () => getStoreVariants(),
   })
 
   const { data: storeTags } = useSuspenseQuery({
@@ -334,18 +355,27 @@ function ProductWizard({
           originalPrice: data.originalPrice || undefined,
           status: data.status,
           tagIds: data.tagIds,
-          variants: data.variantAxes
-            .filter((a) => a.values.some((v) => v.selected))
-            .map((a) => ({
-              variantId: a.variantId,
-              values: a.values
-                .filter((v) => v.selected)
-                .map((v) => ({
-                  value: v.value,
-                  price: v.price || data.price,
-                  quantity: v.quantity,
-                })),
-            })),
+          variants: data.selectedAxes.map((axis) => {
+            // Collect unique values for this axis from selected combinations
+            const axisValues = new Map<string, { price: string; quantity: number }>()
+            for (const combo of data.combinations.filter((c) => c.selected)) {
+              const part = combo.parts.find((p) => p.axisName === axis.name)
+              if (part && !axisValues.has(part.value)) {
+                axisValues.set(part.value, {
+                  price: combo.price || data.price,
+                  quantity: combo.quantity,
+                })
+              }
+            }
+            return {
+              variantId: axis.id,
+              values: Array.from(axisValues.entries()).map(([value, info]) => ({
+                value,
+                price: info.price,
+                quantity: info.quantity,
+              })),
+            }
+          }).filter((a) => a.values.length > 0),
         },
       })
       // Reset wizard
@@ -359,7 +389,8 @@ function ProductWizard({
         price: '',
         originalPrice: '',
         tagIds: [],
-        variantAxes: [],
+        selectedAxes: [],
+        combinations: [],
       })
       onCreated()
     } catch (error) {
@@ -378,7 +409,7 @@ function ProductWizard({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="sm:max-w-lg w-full overflow-y-auto">
+      <SheetContent side="right" className="min-w-[600px] overflow-y-auto">
         <SheetHeader>
           <SheetTitle>New Product</SheetTitle>
           <SheetDescription>
@@ -413,7 +444,6 @@ function ProductWizard({
             <StepVariants
               data={data}
               onChange={update}
-              storeVariants={storeVariants}
               storeTags={storeTags}
             />
           )}
@@ -686,256 +716,214 @@ function StepTags({
 }
 
 // ── Step 4: Variants ─────────────────────────────────────────────────
+// ── Cartesian product helper ─────────────────────────────────────────
+function cartesianProduct<T>(arrays: T[][]): T[][] {
+  if (arrays.length === 0) return [[]]
+  return arrays.reduce<T[][]>(
+    (acc, arr) => acc.flatMap((combo) => arr.map((item) => [...combo, item])),
+    [[]],
+  )
+}
+
 function StepVariants({
   data,
   onChange,
-  storeVariants,
   storeTags,
 }: {
   data: WizardData
   onChange: (p: Partial<WizardData>) => void
-  storeVariants: Array<{ id: string; name: string }>
   storeTags: Array<{ id: string; name: string; tagOptions: Array<{ id: string; name: string }> }>
 }) {
-  // Find tags that have options and are selected for this product
-  const tagsWithOptions = storeTags.filter(
+  // Tags with options that were selected in Step 3
+  const availableAxes = storeTags.filter(
     (t) => t.tagOptions.length > 0 && data.tagIds.includes(t.id),
   )
 
-  if (storeVariants.length === 0 && tagsWithOptions.length === 0) {
+  if (availableAxes.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground text-sm">
-        <p>No variant attributes or tag options available.</p>
+        <p>No variant attributes available.</p>
         <p className="mt-1">
-          Create store variants in the Tags tab, or select tags with options in Step 3.
+          Select tags with options in Step 3 to create variant combinations.
         </p>
       </div>
     )
   }
 
-  // Toggle a variant axis on/off
-  const toggleAxis = (variantId: string, variantName: string) => {
-    const existing = data.variantAxes.find((a) => a.variantId === variantId)
-    if (existing) {
-      onChange({
-        variantAxes: data.variantAxes.filter((a) => a.variantId !== variantId),
-      })
+  // Toggle an axis on/off and regenerate combinations
+  const toggleAxis = (tag: { id: string; name: string; tagOptions: Array<{ id: string; name: string }> }) => {
+    const isActive = data.selectedAxes.some((a) => a.id === tag.id)
+    let nextAxes: SelectedAxis[]
+
+    if (isActive) {
+      nextAxes = data.selectedAxes.filter((a) => a.id !== tag.id)
     } else {
-      // Find tag options that match this variant name
-      const matchingTag = storeTags.find(
-        (t) => t.name.toLowerCase() === variantName.toLowerCase(),
-      )
-      const tagValues =
-        matchingTag?.tagOptions.map((o) => ({
-          value: o.name,
-          price: data.price || '0',
-          quantity: 0,
-          selected: true,
-        })) || []
-
-      onChange({
-        variantAxes: [
-          ...data.variantAxes,
-          { variantId, variantName, values: tagValues },
-        ],
-      })
+      nextAxes = [
+        ...data.selectedAxes,
+        { id: tag.id, name: tag.name, values: tag.tagOptions.map((o) => o.name) },
+      ]
     }
+
+    // Regenerate Cartesian product combinations
+    const combos = generateCombinations(nextAxes, data.price)
+    onChange({ selectedAxes: nextAxes, combinations: combos })
   }
 
-  // Add a value to an axis
-  const addValue = (variantId: string, value: string) => {
+  // Update a single combination
+  const updateCombination = (key: string, partial: Partial<VariantCombination>) => {
     onChange({
-      variantAxes: data.variantAxes.map((a) =>
-        a.variantId === variantId
-          ? {
-            ...a,
-            values: [
-              ...a.values,
-              {
-                value,
-                price: data.price || '0',
-                quantity: 0,
-                selected: true,
-              },
-            ],
-          }
-          : a,
+      combinations: data.combinations.map((c) =>
+        c.key === key ? { ...c, ...partial } : c,
       ),
     })
   }
 
-  // Update a value in an axis
-  const updateValue = (
-    variantId: string,
-    index: number,
-    partial: Partial<VariantValue>,
-  ) => {
+  // Select all / deselect all
+  const toggleAll = (selected: boolean) => {
     onChange({
-      variantAxes: data.variantAxes.map((a) =>
-        a.variantId === variantId
-          ? {
-            ...a,
-            values: a.values.map((v, i) =>
-              i === index ? { ...v, ...partial } : v,
-            ),
-          }
-          : a,
-      ),
+      combinations: data.combinations.map((c) => ({ ...c, selected })),
     })
   }
 
-  // Count selected
-  const totalSelected = data.variantAxes.reduce(
-    (sum, a) => sum + a.values.filter((v) => v.selected).length,
-    0,
-  )
+  const selectedCount = data.combinations.filter((c) => c.selected).length
 
   return (
     <div className="space-y-4">
-      {/* Variant axis selection */}
+      {/* Axis selection */}
       <div className="space-y-2">
-        <label className="text-xs font-medium">
-          Select Variant Attributes
-        </label>
+        <label className="text-xs font-medium">Select Variant Attributes</label>
         <p className="text-xs text-muted-foreground">
-          Choose which attributes define the variants for this product.
+          Choose which tag attributes to combine into product variants.
         </p>
         <div className="flex flex-wrap gap-2 mt-2">
-          {storeVariants.map((sv) => {
-            const isActive = data.variantAxes.some(
-              (a) => a.variantId === sv.id,
-            )
+          {availableAxes.map((tag) => {
+            const isActive = data.selectedAxes.some((a) => a.id === tag.id)
             return (
               <button
-                key={sv.id}
+                key={tag.id}
                 type="button"
-                onClick={() => toggleAxis(sv.id, sv.name)}
+                onClick={() => toggleAxis(tag)}
                 className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${isActive
                   ? 'bg-foreground text-background border-foreground'
                   : 'border-border hover:border-foreground/30'
                   }`}
               >
-                {sv.name}
+                {tag.name}
+                <span className="ml-1 opacity-60">({tag.tagOptions.length})</span>
               </button>
             )
           })}
         </div>
       </div>
 
-      {/* Per-axis value configuration */}
-      {data.variantAxes.map((axis) => (
-        <div key={axis.variantId} className="border rounded-md p-3 space-y-3">
+      {/* Combinations table */}
+      {data.combinations.length > 0 && (
+        <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h4 className="text-sm font-semibold">{axis.variantName}</h4>
-            <span className="text-[10px] text-muted-foreground">
-              {axis.values.filter((v) => v.selected).length} of{' '}
-              {axis.values.length} selected
-            </span>
+            <label className="text-xs font-medium">
+              Variant Combinations ({selectedCount} of {data.combinations.length} selected)
+            </label>
+            <div className="flex gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-[10px] px-2"
+                onClick={() => toggleAll(true)}
+              >
+                Select All
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-[10px] px-2"
+                onClick={() => toggleAll(false)}
+              >
+                Clear
+              </Button>
+            </div>
           </div>
 
-          {/* Values table */}
-          {axis.values.length > 0 && (
-            <div className="space-y-1">
-              <div className="grid grid-cols-[auto_1fr_80px_80px] gap-2 text-[10px] text-muted-foreground font-medium px-1">
-                <span></span>
-                <span>Value</span>
-                <span>Price ($)</span>
-                <span>Stock</span>
-              </div>
-              {axis.values.map((val, i) => (
+          <div className="border rounded-md overflow-hidden">
+            {/* Header */}
+            <div
+              className="grid gap-2 text-[10px] text-muted-foreground font-medium px-3 py-2 bg-muted/50 border-b"
+              style={{ gridTemplateColumns: `auto ${data.selectedAxes.map(() => '1fr').join(' ')} 80px 80px` }}
+            >
+              <span></span>
+              {data.selectedAxes.map((axis) => (
+                <span key={axis.id}>{axis.name}</span>
+              ))}
+              <span>Price ($)</span>
+              <span>Stock</span>
+            </div>
+
+            {/* Rows */}
+            <div className="max-h-[300px] overflow-y-auto">
+              {data.combinations.map((combo) => (
                 <div
-                  key={i}
-                  className={`grid grid-cols-[auto_1fr_80px_80px] gap-2 items-center px-1 py-1 rounded ${val.selected ? '' : 'opacity-40'
-                    }`}
+                  key={combo.key}
+                  className={`grid gap-2 items-center px-3 py-1.5 border-b last:border-b-0 transition-opacity ${combo.selected ? '' : 'opacity-40'}`}
+                  style={{ gridTemplateColumns: `auto ${data.selectedAxes.map(() => '1fr').join(' ')} 80px 80px` }}
                 >
                   <input
                     type="checkbox"
-                    checked={val.selected}
-                    onChange={(e) =>
-                      updateValue(axis.variantId, i, {
-                        selected: e.target.checked,
-                      })
-                    }
+                    checked={combo.selected}
+                    onChange={(e) => updateCombination(combo.key, { selected: e.target.checked })}
                     className="h-3.5 w-3.5 rounded accent-foreground"
                   />
-                  <span className="text-xs truncate">{val.value}</span>
+                  {combo.parts.map((part) => (
+                    <span key={part.axisName} className="text-xs truncate">
+                      {part.value}
+                    </span>
+                  ))}
                   <Input
                     type="number"
                     step="0.01"
-                    value={val.price}
-                    onChange={(e) =>
-                      updateValue(axis.variantId, i, {
-                        price: e.target.value,
-                      })
-                    }
+                    value={combo.price}
+                    onChange={(e) => updateCombination(combo.key, { price: e.target.value })}
                     className="h-7 text-xs py-0"
-                    disabled={!val.selected}
+                    disabled={!combo.selected}
                   />
                   <Input
                     type="number"
                     step="1"
                     min="0"
-                    value={val.quantity}
-                    onChange={(e) =>
-                      updateValue(axis.variantId, i, {
-                        quantity: parseInt(e.target.value) || 0,
-                      })
-                    }
+                    value={combo.quantity}
+                    onChange={(e) => updateCombination(combo.key, { quantity: parseInt(e.target.value) || 0 })}
                     className="h-7 text-xs py-0"
-                    disabled={!val.selected}
+                    disabled={!combo.selected}
                   />
                 </div>
               ))}
             </div>
-          )}
+          </div>
 
-          {/* Add custom value */}
-          <AddValueInput onAdd={(v) => addValue(axis.variantId, v)} />
+          <p className="text-xs text-muted-foreground text-right">
+            {selectedCount} variant{selectedCount !== 1 ? 's' : ''} will be created
+          </p>
         </div>
-      ))}
-
-      {data.variantAxes.length > 0 && (
-        <p className="text-xs text-muted-foreground text-right">
-          {totalSelected} variant{totalSelected !== 1 ? 's' : ''} will be
-          created
-        </p>
       )}
     </div>
   )
 }
 
-function AddValueInput({ onAdd }: { onAdd: (value: string) => void }) {
-  const [inputVal, setInputVal] = useState('')
-  return (
-    <div className="flex gap-2">
-      <Input
-        value={inputVal}
-        onChange={(e) => setInputVal(e.target.value)}
-        placeholder="Add custom value…"
-        className="h-7 text-xs"
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' && inputVal.trim()) {
-            e.preventDefault()
-            onAdd(inputVal.trim())
-            setInputVal('')
-          }
-        }}
-      />
-      <Button
-        variant="outline"
-        size="sm"
-        className="h-7 text-xs px-2"
-        onClick={() => {
-          if (inputVal.trim()) {
-            onAdd(inputVal.trim())
-            setInputVal('')
-          }
-        }}
-      >
-        Add
-      </Button>
-    </div>
+function generateCombinations(axes: SelectedAxis[], basePrice: string): VariantCombination[] {
+  if (axes.length === 0) return []
+
+  const valueArrays = axes.map((axis) =>
+    axis.values.map((v) => ({ axisName: axis.name, value: v })),
   )
+
+  const product = cartesianProduct(valueArrays)
+
+  return product.map((parts) => ({
+    key: parts.map((p) => `${p.axisName}:${p.value}`).join('|'),
+    parts,
+    label: parts.map((p) => p.value).join(' / '),
+    price: basePrice || '0',
+    quantity: 0,
+    selected: true,
+  }))
 }
 
 // ── Step 5: Review ───────────────────────────────────────────────────
@@ -953,10 +941,7 @@ function StepReview({
     (s) => s.id === data.subcategoryId,
   )
   const selectedTags = storeTags.filter((t) => data.tagIds.includes(t.id))
-  const totalVariants = data.variantAxes.reduce(
-    (sum, a) => sum + a.values.filter((v) => v.selected).length,
-    0,
-  )
+  const selectedCombinations = data.combinations.filter((c) => c.selected)
 
   return (
     <div className="space-y-4">
@@ -1027,31 +1012,363 @@ function StepReview({
         <div className="flex justify-between py-1.5 border-b">
           <span className="text-muted-foreground">Variants</span>
           <span className="font-medium">
-            {totalVariants} variant{totalVariants !== 1 ? 's' : ''} across{' '}
-            {data.variantAxes.length} attribute
-            {data.variantAxes.length !== 1 ? 's' : ''}
+            {selectedCombinations.length} combination{selectedCombinations.length !== 1 ? 's' : ''} across{' '}
+            {data.selectedAxes.length} attribute{data.selectedAxes.length !== 1 ? 's' : ''}
           </span>
         </div>
 
-        {data.variantAxes
-          .filter((a) => a.values.some((v) => v.selected))
-          .map((axis) => (
-            <div key={axis.variantId} className="pl-4 py-1.5 border-b">
-              <span className="text-muted-foreground">{axis.variantName}</span>
-              <div className="flex flex-wrap gap-1 mt-1">
-                {axis.values
-                  .filter((v) => v.selected)
-                  .map((v, i) => (
-                    <Badge key={i} variant="outline" className="text-[10px]">
-                      {v.value} · ${Number(v.price).toFixed(2)} · {v.quantity}{' '}
-                      qty
-                    </Badge>
-                  ))}
+        {selectedCombinations.length > 0 && (
+          <div className="pl-4 space-y-1">
+            {selectedCombinations.map((combo) => (
+              <div key={combo.key} className="flex justify-between py-1 border-b">
+                <span>{combo.label}</span>
+                <span className="font-mono text-muted-foreground">
+                  ${Number(combo.price).toFixed(2)} · {combo.quantity} qty
+                </span>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+        )}
       </div>
     </div>
+  )
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// Categories tab
+// ════════════════════════════════════════════════════════════════════════
+function CategoriesTab() {
+  const queryClient = useQueryClient()
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [editingCategory, setEditingCategory] = useState<{
+    id: string
+    name: string
+    description: string | null
+  } | null>(null)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+
+  const { data: categoriesData } = useSuspenseQuery({
+    queryKey: ['categoriesWithSubs'],
+    queryFn: () => getCategoriesWithSubs(),
+  })
+
+  const openCreate = () => {
+    setEditingCategory(null)
+    setSheetOpen(true)
+  }
+
+  const openEdit = (cat: { id: string; name: string; description: string | null }) => {
+    setEditingCategory(cat)
+    setSheetOpen(true)
+  }
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteCategory({ data: { id } })
+      queryClient.invalidateQueries({ queryKey: ['categoriesWithSubs'] })
+    } catch (e: any) {
+      alert(e.message)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Categories</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {categoriesData.length} categor{categoriesData.length !== 1 ? 'ies' : 'y'} in your store
+          </p>
+        </div>
+        <Button onClick={openCreate}>+ New Category</Button>
+      </div>
+
+      {categoriesData.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="py-12 text-center">
+            <p className="text-muted-foreground text-sm">
+              No categories yet. Create your first category to organize products.
+            </p>
+            <Button className="mt-4" variant="outline" onClick={openCreate}>
+              + Create Category
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {categoriesData.map((cat) => {
+            const isExpanded = expandedId === cat.id
+            return (
+              <Card key={cat.id} className="transition-colors">
+                {/* Category header */}
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      className="flex items-center gap-2 text-left flex-1 min-w-0"
+                      onClick={() => setExpandedId(isExpanded ? null : cat.id)}
+                    >
+                      <HugeiconsIcon
+                        icon={isExpanded ? ArrowUp01Icon : ArrowDown01Icon}
+                        strokeWidth={2}
+                        className="size-4 shrink-0 text-muted-foreground"
+                      />
+                      <div className="min-w-0">
+                        <CardTitle className="text-sm font-semibold truncate">
+                          {cat.name}
+                        </CardTitle>
+                        {cat.description && (
+                          <CardDescription className="text-xs line-clamp-1 mt-0.5">
+                            {cat.description}
+                          </CardDescription>
+                        )}
+                      </div>
+                    </button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Badge variant="secondary" className="text-[10px]">
+                        {cat.subcategories.length} sub{cat.subcategories.length !== 1 ? 's' : ''}
+                      </Badge>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() =>
+                          openEdit({
+                            id: cat.id,
+                            name: cat.name,
+                            description: cat.description,
+                          })
+                        }
+                      >
+                        <HugeiconsIcon icon={PencilIcon} strokeWidth={2} className="size-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => handleDelete(cat.id)}
+                      >
+                        <HugeiconsIcon icon={Trash} strokeWidth={2} className="size-3.5 text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+
+                {/* Expanded: subcategories */}
+                {isExpanded && (
+                  <CardContent className="pt-0 border-t mt-2">
+                    <SubcategoryList categoryId={cat.id} subcategories={cat.subcategories} />
+                  </CardContent>
+                )}
+              </Card>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Create / Edit sheet */}
+      <CategorySheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        editing={editingCategory}
+      />
+    </div>
+  )
+}
+
+// ── Subcategory list within an expanded category ─────────────────────
+function SubcategoryList({
+  categoryId,
+  subcategories: subs,
+}: {
+  categoryId: string
+  subcategories: Array<{ id: string; name: string; description: string | null }>
+}) {
+  const queryClient = useQueryClient()
+  const [newName, setNewName] = useState('')
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+
+  const handleAdd = async () => {
+    if (!newName.trim()) return
+    try {
+      await createSubcategory({ data: { name: newName.trim(), categoryId } })
+      setNewName('')
+      queryClient.invalidateQueries({ queryKey: ['categoriesWithSubs'] })
+    } catch (e: any) {
+      alert(e.message)
+    }
+  }
+
+  const handleUpdate = async (id: string) => {
+    if (!editName.trim()) return
+    try {
+      await updateSubcategory({ data: { id, name: editName.trim() } })
+      setEditingId(null)
+      queryClient.invalidateQueries({ queryKey: ['categoriesWithSubs'] })
+    } catch (e: any) {
+      alert(e.message)
+    }
+  }
+
+  const handleDeleteSub = async (id: string) => {
+    try {
+      await deleteSubcategory({ data: { id } })
+      queryClient.invalidateQueries({ queryKey: ['categoriesWithSubs'] })
+    } catch (e: any) {
+      alert(e.message)
+    }
+  }
+
+  return (
+    <div className="space-y-2 py-3">
+      {subs.length === 0 && (
+        <p className="text-xs text-muted-foreground italic">No subcategories yet</p>
+      )}
+      {subs.map((sub) => (
+        <div key={sub.id} className="flex items-center gap-2 group">
+          {editingId === sub.id ? (
+            <>
+              <Input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="h-7 text-xs flex-1"
+                onKeyDown={(e) => e.key === 'Enter' && handleUpdate(sub.id)}
+                autoFocus
+              />
+              <Button size="icon-sm" variant="ghost" onClick={() => handleUpdate(sub.id)}>
+                <HugeiconsIcon icon={Save} strokeWidth={2} className="size-3.5" />
+              </Button>
+              <Button size="icon-sm" variant="ghost" onClick={() => setEditingId(null)}>
+                ✕
+              </Button>
+            </>
+          ) : (
+            <>
+              <span className="text-xs flex-1 truncate">{sub.name}</span>
+              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setEditingId(sub.id)
+                    setEditName(sub.name)
+                  }}
+                >
+                  <HugeiconsIcon icon={PencilIcon} strokeWidth={2} className="size-3" />
+                </Button>
+                <Button size="icon-sm" variant="ghost" onClick={() => handleDeleteSub(sub.id)}>
+                  <HugeiconsIcon icon={Trash} strokeWidth={2} className="size-3 text-destructive" />
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      ))}
+
+      {/* Add subcategory inline */}
+      <div className="flex items-center gap-2 pt-1">
+        <Input
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          placeholder="New subcategory…"
+          className="h-7 text-xs flex-1"
+          onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+        />
+        <Button size="icon-sm" variant="outline" onClick={handleAdd} disabled={!newName.trim()}>
+          <HugeiconsIcon icon={Add01Icon} strokeWidth={2} className="size-3.5" />
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+// ── Category create / edit sheet ────────────────────────────────────
+function CategorySheet({
+  open,
+  onOpenChange,
+  editing,
+}: {
+  open: boolean
+  onOpenChange: (v: boolean) => void
+  editing: { id: string; name: string; description: string | null } | null
+}) {
+  const queryClient = useQueryClient()
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (open) {
+      setName(editing?.name ?? '')
+      setDescription(editing?.description ?? '')
+    }
+  }, [open, editing])
+
+  const handleSave = async () => {
+    if (!name.trim()) return
+    setSaving(true)
+    try {
+      if (editing) {
+        await updateCategory({
+          data: { id: editing.id, name: name.trim(), description: description.trim() || undefined },
+        })
+      } else {
+        await createCategory({
+          data: { name: name.trim(), description: description.trim() || undefined },
+        })
+      }
+      queryClient.invalidateQueries({ queryKey: ['categoriesWithSubs'] })
+      onOpenChange(false)
+    } catch (e: any) {
+      alert(e.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent>
+        <SheetHeader>
+          <SheetTitle>{editing ? 'Edit Category' : 'New Category'}</SheetTitle>
+          <SheetDescription>
+            {editing
+              ? 'Update the category name and description.'
+              : 'Add a new category to organize your products.'}
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="p-4 space-y-4">
+          <div className="space-y-2">
+            <label className="text-xs font-medium">
+              Name <span className="text-destructive">*</span>
+            </label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g., Whisky, Wines, Beer"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-xs font-medium">Description</label>
+            <Textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Optional description…"
+            />
+          </div>
+        </div>
+
+        <SheetFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={!name.trim() || saving}>
+            {saving ? 'Saving…' : editing ? 'Update' : 'Create'}
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   )
 }
 
