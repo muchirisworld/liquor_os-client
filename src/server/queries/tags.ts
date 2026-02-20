@@ -122,13 +122,35 @@ const deleteTagOptionSchema = z.object({
 
 export const deleteTagOption = authFn
   .inputValidator(deleteTagOptionSchema)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const { optionId } = data
+    const { orgId } = context.auth
+
+    if (!orgId) {
+      throw new Error('Organization ID is required')
+    }
 
     log.info('Deleting tag option:', optionId)
 
     try {
-      await db.delete(tagOptions).where(eq(tagOptions.id, optionId))
+      const result = await db
+        .delete(tagOptions)
+        .where(eq(tagOptions.id, optionId))
+        .returning({ tagId: tagOptions.tagId })
+
+      if (result.length === 0) {
+        throw new Error('Tag option not found')
+      }
+
+      const tag = await db
+        .select({ storeId: tags.storeId })
+        .from(tags)
+        .where(eq(tags.id, result[0].tagId))
+        .limit(1)
+
+      if (tag.length === 0 || tag[0].storeId !== orgId) {
+        throw new Error('Unauthorized: Tag option does not belong to your organization')
+      }
 
       log.info('Deleted tag option:', optionId)
       return { success: true }
@@ -136,6 +158,7 @@ export const deleteTagOption = authFn
       log.error('Failed to delete tag option', { error, optionId })
       throw new Error('Failed to delete tag option. Please try again.')
     }
+  })
   })
 
 const getTagOptionsSchema = z.object({
