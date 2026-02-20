@@ -174,11 +174,12 @@ function TagOptionsManager({
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null)
 
   // Load existing options
-  useState(() => {
+  // Load existing options
+  useEffect(() => {
     getTagOptions({ data: { tagId: tag.id } }).then((opts) => {
       setOptions(opts.map((o: TagOption) => ({ id: o.id, name: o.name })))
     })
-  })
+  }, [tag.id])
 
   const handleSaveOptions = async (newOptionNames: Array<string>) => {
     setIsLoading(true)
