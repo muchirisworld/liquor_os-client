@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm"
 import {
   index,
+  json,
   pgTable,
   primaryKey,
   text,
@@ -90,3 +91,28 @@ export type NewTagOption = typeof tagOptions.$inferInsert
 export const tagOptionRelations = relations(tagOptions, ({ one }) => ({
   parentTag: one(tags, { fields: [tagOptions.tagId], references: [tags.id] }),
 }))
+
+export const tagPresets = pgTable(
+  "tag_presets",
+  {
+    id: uuid("id").primaryKey().defaultRandom().notNull(),
+    storeId: varchar("store_id")
+      .references(() => stores.id, { onDelete: "cascade" })
+      .notNull(),
+    name: text("name").notNull(),
+    tagName: text("tag_name").notNull(),
+    options: json("options").$type<string[]>().notNull(),
+    ...lifecycleDates,
+  },
+  (table) => [
+    index("tag_presets_store_id_idx").on(table.storeId),
+    index("tag_presets_tag_name_idx").on(table.tagName),
+  ]
+)
+
+export const tagPresetsRelations = relations(tagPresets, ({ one }) => ({
+  store: one(stores, { fields: [tagPresets.storeId], references: [stores.id] }),
+}))
+
+export type TagPreset = typeof tagPresets.$inferSelect
+export type NewTagPreset = typeof tagPresets.$inferInsert

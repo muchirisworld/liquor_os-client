@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { createLogger, format, transports } from 'winston'
 import { authMiddleware } from '@/middleware/authMiddleware'
-import { tagOptions, tags } from '@/db/schema'
+import { tagOptions, tagPresets, tags } from '@/db/schema'
 import { db } from '@/db'
 
 const authFn = createServerFn().middleware([authMiddleware])
@@ -155,5 +155,88 @@ export const getTagOptions = authFn
     } catch (error) {
       log.error('Failed to fetch tag options', { error, tagId })
       throw new Error('Failed to fetch tag options. Please try again.')
+    }
+  })
+
+export const getTagPresets = authFn.handler(async ({ context }) => {
+  const { orgId } = context.auth
+
+  if (!orgId) {
+    log.error('Organization ID is required')
+    throw new Error('Organization ID is required')
+  }
+
+  log.info('Fetching tag presets for orgId:', orgId)
+
+  try {
+    const presetsQueried = await db
+      .select()
+      .from(tagPresets)
+      .where(eq(tagPresets.storeId, orgId))
+
+    log.info(`Found ${presetsQueried.length} tag presets`)
+    return presetsQueried
+  } catch (error) {
+    log.error('Failed to fetch tag presets', { error, orgId })
+    throw new Error('Failed to fetch tag presets. Please try again.')
+  }
+})
+
+const createTagPresetSchema = z.object({
+  name: z.string().min(1, 'Preset name is required'),
+  tagName: z.string().min(1, 'Tag name is required'),
+  options: z.array(z.string().min(1, 'Option name cannot be empty')),
+})
+
+export const createTagPreset = authFn
+  .inputValidator(createTagPresetSchema)
+  .handler(async ({ data, context }) => {
+    const { name, tagName, options } = data
+    const { orgId } = context.auth
+
+    if (!orgId) {
+      throw new Error('Organization ID is required')
+    }
+
+    log.info('Creating tag preset:', { name, tagName, options, orgId })
+
+    try {
+      const [newPreset] = await db
+        .insert(tagPresets)
+        .values({
+          name,
+          tagName,
+          options,
+          storeId: orgId,
+        })
+        .returning()
+
+      log.info('Created tag preset:', { id: newPreset.id, name: newPreset.name })
+      return newPreset
+    } catch (error) {
+      log.error('Failed to create tag preset', { error, name, orgId })
+      throw new Error('Failed to create tag preset. Please try again.')
+    }
+  })
+
+const deleteTagPresetSchema = z.object({
+  presetId: z.string().min(1, 'Preset ID is required'),
+})
+
+export const deleteTagPreset = authFn
+  .inputValidator(deleteTagPresetSchema)
+  .handler(async ({ data }) => {
+    const { presetId } = data
+
+    log.info('Deleting tag preset:', presetId)
+
+    try {
+      await db.delete(tagPresets).where(eq(tagPresets.id, presetId))
+
+      log.info('Deleted tag preset:', presetId)
+      return { success: true }
+    } catch (error) {
+      log.error('Failed to delete tag preset', { error, presetId })
+      throw new Error('Failed to delete tag preset. Please try again.')
     }
   })
