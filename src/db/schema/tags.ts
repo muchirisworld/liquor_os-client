@@ -70,6 +70,7 @@ export const productTagsRelations = relations(productTags, ({ one }) => ({
   product: one(products, {
     fields: [productTags.productId],
     references: [products.id],
+    relationName: "productTags",
   }),
   tag: one(tags, { fields: [productTags.tagId], references: [tags.id] }),
 }))
@@ -89,7 +90,7 @@ export type TagOption = typeof tagOptions.$inferSelect
 export type NewTagOption = typeof tagOptions.$inferInsert
 
 export const tagOptionRelations = relations(tagOptions, ({ one }) => ({
-  parentTag: one(tags, { fields: [tagOptions.tagId], references: [tags.id] }),
+  parentTag: one(tags, { fields: [tagOptions.tagId], references: [tags.id], relationName: "tagOptions" }),
 }))
 
 export const tagPresets = pgTable(

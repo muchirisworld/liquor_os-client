@@ -66,6 +66,7 @@ export const productVariantsRelations = relations(
     product: one(products, {
       fields: [productVariants.productId],
       references: [products.id],
+      relationName: "productVariants",
     }),
     variant: one(variants, {
       fields: [productVariants.variantId],

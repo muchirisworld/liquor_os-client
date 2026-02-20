@@ -44,6 +44,8 @@ export const Route = createRootRoute({
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  const queryClient = getQueryClient()
+
   return (
     <ClerkProvider
       appearance={{

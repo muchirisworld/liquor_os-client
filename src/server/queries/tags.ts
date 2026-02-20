@@ -54,6 +54,8 @@ const createTagSchema = z.object({
   storeId: z.string().min(1, 'Store ID is required'),
 })
 
+export const createTag = authFn
+  .inputValidator(createTagSchema)
   .handler(async ({ data, context }) => {
     const { name } = data
     const { orgId } = context.auth
@@ -158,7 +160,6 @@ export const deleteTagOption = authFn
       log.error('Failed to delete tag option', { error, optionId })
       throw new Error('Failed to delete tag option. Please try again.')
     }
-  })
   })
 
 const getTagOptionsSchema = z.object({
