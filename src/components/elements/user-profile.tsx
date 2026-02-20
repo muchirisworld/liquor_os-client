@@ -8,7 +8,7 @@ import {
   UserIcon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon  } from '@hugeicons/react'
-import useThemeStore from '../../../lib/themeStore'
+import useThemeStore from '../../lib/themeStore'
 import type {IconSvgElement} from '@hugeicons/react';
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'

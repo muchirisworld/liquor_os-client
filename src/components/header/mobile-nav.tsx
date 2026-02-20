@@ -9,8 +9,8 @@ import {
   companyLinks,
   companyLinks2,
   productLinks,
-} from '@/routes/_components/header/nav-links'
-import { LinkItem } from '@/routes/_components/header/link-item'
+} from '@/components/header/nav-links'
+import { LinkItem } from '@/components/header/link-item'
 
 const MobileNav = () => {
   const [open, setOpen] = useState(false)

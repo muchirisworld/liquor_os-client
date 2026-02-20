@@ -14,7 +14,7 @@ import {
   UserPlus,
   Users,
 } from '@hugeicons/core-free-icons'
-import type { LinkItemType } from '@/routes/_components/header/link-item'
+import type { LinkItemType } from '@/components/header/link-item'
 
 export const productLinks: Array<LinkItemType> = [
   {

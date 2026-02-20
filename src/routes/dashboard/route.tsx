@@ -1,5 +1,5 @@
 import { Outlet, createFileRoute } from '@tanstack/react-router'
-import AppSidebar from './_components/app-sidebar'
+import AppSidebar from '../../components/layout/app-sidebar'
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { requireAuth } from '@/server/auth/auth'
 

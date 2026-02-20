@@ -1,5 +1,5 @@
 import { useRouterState } from '@tanstack/react-router'
-import { Box, Cart, HomeIcon, Users } from '@hugeicons/core-free-icons'
+import { Box, Cart, Chart, HomeIcon, Users } from '@hugeicons/core-free-icons'
 import type { IconSvgElement } from '@hugeicons/react'
 import type { FileRouteTypes } from '@/routeTree.gen'
 
@@ -38,6 +38,12 @@ export const dashboardNavConfig: Record<DashboardRoute, SidebarNavItemConfig> =
       url: '/dashboard',
       icon: HomeIcon,
     },
+    '/dashboard/catalog': {
+      kind: 'item',
+      title: 'Catalog',
+      url: '/dashboard/catalog',
+      icon: Box,
+    },
     '/dashboard/orders': {
       kind: 'item',
       title: 'Orders',
@@ -54,7 +60,7 @@ export const dashboardNavConfig: Record<DashboardRoute, SidebarNavItemConfig> =
       kind: 'item',
       title: 'Inventory',
       url: '/dashboard/inventory',
-      icon: Box,
+      icon: Chart,
     },
   }
 

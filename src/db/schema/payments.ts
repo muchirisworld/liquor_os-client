@@ -16,7 +16,7 @@ export const payments = pgTable(
   "payments",
   {
     id: uuid("id").primaryKey().defaultRandom().notNull(),
-    storeId: uuid("store_id")
+    storeId: varchar("store_id")
       .references(() => stores.id, { onDelete: "cascade" })
       .notNull(),
     stripeAccountId: varchar("stripe_account_id", { length: 256 }).notNull(),
