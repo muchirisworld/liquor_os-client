@@ -7,7 +7,16 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import appCss from '../styles.css?url'
 
-const queryClient = new QueryClient()
+const getQueryClient = (() => {
+  let browserQueryClient: QueryClient | undefined
+  return () => {
+    if (typeof window === 'undefined') {
+      return new QueryClient()
+    }
+    if (!browserQueryClient) browserQueryClient = new QueryClient()
+    return browserQueryClient
+  }
+})()
 
 export const Route = createRootRoute({
   head: () => ({
