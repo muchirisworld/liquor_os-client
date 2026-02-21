@@ -40,7 +40,6 @@ export const Route = createRootRoute({
       },
     ],
   }),
-  // notFoundComponent: () => import('@/components/elements/not-found').then((mod) => mod.NotFoundPage),
   notFoundComponent: NotFoundPage,
   component: () => <Outlet />,
   shellComponent: RootDocument,
