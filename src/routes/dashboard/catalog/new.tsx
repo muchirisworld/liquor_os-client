@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useSuspenseQuery, useQueryClient } from '@tanstack/react-query'
 import { getCategories, getStoreTags } from '@/server/queries/products'
-import { ProductForm } from './components/product-form'
+import { ProductForm } from '@/components/catalog/components/products/product-form'
 import { Card, CardContent } from '@/components/ui/card'
 
 export const Route = createFileRoute('/dashboard/catalog/new')({

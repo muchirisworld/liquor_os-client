@@ -1,9 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
 import { getTags } from '@/server/queries/tags'
-import { ProductsTab } from './components/products-tab'
-import { CategoriesTab } from './components/categories-tab'
-import { TagsTab } from './components/tags-tab'
+import { ProductsTab } from '@/components/catalog/components/products/products-tab'
+import { CategoriesTab } from '@/components/catalog/components/categories/categories-tab'
+import { TagsTab } from '@/components/catalog/components/tags/tags-tab'
 import { Button } from '@/components/ui/button'
 
 export const Route = createFileRoute('/dashboard/catalog/')({
