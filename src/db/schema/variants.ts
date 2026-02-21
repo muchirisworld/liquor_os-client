@@ -50,7 +50,7 @@ export const productVariants = pgTable(
       .references(() => products.id, { onDelete: "cascade" })
       .notNull(),
     variantId: uuid("variant_id")
-      .references(() => variants.id, { onDelete: "cascade" })
+      .references(() => tags.id, { onDelete: "cascade" })
       .notNull(),
     ...lifecycleDates,
   },
@@ -68,9 +68,9 @@ export const productVariantsRelations = relations(
       references: [products.id],
       relationName: "productVariants",
     }),
-    variant: one(variants, {
+    variant: one(tags, {
       fields: [productVariants.variantId],
-      references: [variants.id],
+      references: [tags.id],
     }),
     productVariantValues: many(productVariantValues),
   })

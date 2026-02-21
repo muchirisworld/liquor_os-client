@@ -1,12 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-  SheetFooter,
-} from '@/components/ui/sheet'
+import { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -62,18 +54,16 @@ const STEP_LABELS: Record<WizardStep, string> = {
   5: 'Review',
 }
 
-export function ProductWizard({
-  open,
-  onOpenChange,
-  onCreated,
+export function ProductForm({
   categories,
   storeTags,
+  onCreated,
+  onCancel,
 }: {
-  open: boolean
-  onOpenChange: (o: boolean) => void
-  onCreated: () => void
   categories: any[]
   storeTags: any[]
+  onCreated: () => void
+  onCancel?: () => void
 }) {
   const [step, setStep] = useState<WizardStep>(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -132,7 +122,6 @@ export function ProductWizard({
           tagIds: data.tagIds,
           variants: data.selectedAxes
             .map((axis) => {
-              // Collect unique values for this axis from selected combinations
               const axisValues = new Map<
                 string,
                 { price: string; quantity: number }
@@ -160,20 +149,6 @@ export function ProductWizard({
             .filter((a) => a.values.length > 0),
         },
       })
-      // Reset wizard
-      setStep(1)
-      setData({
-        name: '',
-        description: '',
-        categoryId: '',
-        subcategoryId: '',
-        status: 'draft',
-        price: '',
-        originalPrice: '',
-        tagIds: [],
-        selectedAxes: [],
-        combinations: [],
-      })
       onCreated()
     } catch (error) {
       console.error('Failed to create product:', error)
@@ -182,60 +157,49 @@ export function ProductWizard({
     }
   }
 
-  // Reset step when closing
-  useEffect(() => {
-    if (!open) {
-      setStep(1)
-    }
-  }, [open])
-
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="min-w-[600px] overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>New Product</SheetTitle>
-          <SheetDescription>
-            Step {step} of 5 — {STEP_LABELS[step]}
-          </SheetDescription>
-          {/* Step indicator */}
-          <div className="flex gap-1 pt-2">
-            {([1, 2, 3, 4, 5] as WizardStep[]).map((s) => (
-              <div
-                key={s}
-                className={`h-1 flex-1 rounded-full transition-colors ${
-                  s <= step ? 'bg-foreground' : 'bg-muted'
-                }`}
-              />
-            ))}
-          </div>
-        </SheetHeader>
-
-        <div className="p-4 flex-1 space-y-4">
-          {step === 1 && (
-            <StepBasicInfo
-              data={data}
-              onChange={update}
-              categories={categories}
-              subcategories={subcategories}
+    <div className="space-y-6">
+      <div className="flex flex-col gap-2">
+        <h2 className="text-xl font-bold">{STEP_LABELS[step]}</h2>
+        <div className="flex gap-1">
+          {([1, 2, 3, 4, 5] as WizardStep[]).map((s) => (
+            <div
+              key={s}
+              className={`h-1 flex-1 rounded-full transition-colors ${
+                s <= step ? 'bg-foreground' : 'bg-muted'
+              }`}
             />
-          )}
-          {step === 2 && <StepPricing data={data} onChange={update} />}
-          {step === 3 && (
-            <StepTags data={data} onChange={update} storeTags={storeTags} />
-          )}
-          {step === 4 && (
-            <StepVariants data={data} onChange={update} storeTags={storeTags} />
-          )}
-          {step === 5 && (
-            <StepReview
-              data={data}
-              categories={categories}
-              storeTags={storeTags}
-            />
-          )}
+          ))}
         </div>
+      </div>
 
-        <SheetFooter className="flex-row justify-between border-t pt-4">
+      <div className="min-h-[400px]">
+        {step === 1 && (
+          <StepBasicInfo
+            data={data}
+            onChange={update}
+            categories={categories}
+            subcategories={subcategories}
+          />
+        )}
+        {step === 2 && <StepPricing data={data} onChange={update} />}
+        {step === 3 && (
+          <StepTags data={data} onChange={update} storeTags={storeTags} />
+        )}
+        {step === 4 && (
+          <StepVariants data={data} onChange={update} storeTags={storeTags} />
+        )}
+        {step === 5 && (
+          <StepReview
+            data={data}
+            categories={categories}
+            storeTags={storeTags}
+          />
+        )}
+      </div>
+
+      <div className="flex justify-between border-t pt-6">
+        <div className="flex gap-2">
           <Button
             variant="outline"
             onClick={() => setStep((s) => Math.max(1, s - 1) as WizardStep)}
@@ -243,24 +207,26 @@ export function ProductWizard({
           >
             Back
           </Button>
-          {step < 5 ? (
-            <Button
-              onClick={() => setStep((s) => Math.min(5, s + 1) as WizardStep)}
-              disabled={!canNext()}
-            >
-              Next
-            </Button>
-          ) : (
-            <Button
-              onClick={handleSubmit}
-              disabled={isSubmitting || !canNext()}
-            >
-              {isSubmitting ? 'Creating…' : 'Create Product'}
+          {onCancel && step === 1 && (
+            <Button variant="ghost" onClick={onCancel}>
+              Cancel
             </Button>
           )}
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+        </div>
+        {step < 5 ? (
+          <Button
+            onClick={() => setStep((s) => Math.min(5, s + 1) as WizardStep)}
+            disabled={!canNext()}
+          >
+            Next
+          </Button>
+        ) : (
+          <Button onClick={handleSubmit} disabled={isSubmitting || !canNext()}>
+            {isSubmitting ? 'Creating…' : 'Create Product'}
+          </Button>
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -548,7 +514,6 @@ function StepVariants({
     tagOptions: Array<{ id: string; name: string }>
   }>
 }) {
-  // Tags with options that were selected in Step 3
   const availableAxes = storeTags.filter(
     (t) => t.tagOptions.length > 0 && data.tagIds.includes(t.id),
   )
@@ -564,7 +529,6 @@ function StepVariants({
     )
   }
 
-  // Toggle an axis on/off and regenerate combinations
   const toggleAxis = (tag: {
     id: string
     name: string
@@ -586,12 +550,10 @@ function StepVariants({
       ]
     }
 
-    // Regenerate Cartesian product combinations
     const combos = generateCombinations(nextAxes, data.price)
     onChange({ selectedAxes: nextAxes, combinations: combos })
   }
 
-  // Update a single combination
   const updateCombination = (
     key: string,
     partial: Partial<VariantCombination>,
@@ -603,7 +565,6 @@ function StepVariants({
     })
   }
 
-  // Select all / deselect all
   const toggleAll = (selected: boolean) => {
     onChange({
       combinations: data.combinations.map((c) => ({ ...c, selected })),
@@ -614,7 +575,6 @@ function StepVariants({
 
   return (
     <div className="space-y-4">
-      {/* Axis selection */}
       <div className="space-y-2">
         <label className="text-xs font-medium">Select Variant Attributes</label>
         <p className="text-xs text-muted-foreground">
@@ -644,7 +604,6 @@ function StepVariants({
         </div>
       </div>
 
-      {/* Combinations table */}
       {data.combinations.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -673,7 +632,6 @@ function StepVariants({
           </div>
 
           <div className="border rounded-md overflow-hidden">
-            {/* Header */}
             <div
               className="grid gap-2 text-[10px] text-muted-foreground font-medium px-3 py-2 bg-muted/50 border-b"
               style={{
@@ -688,7 +646,6 @@ function StepVariants({
               <span>Stock</span>
             </div>
 
-            {/* Rows */}
             <div className="max-h-[300px] overflow-y-auto">
               {data.combinations.map((combo) => (
                 <div

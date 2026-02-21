@@ -20,6 +20,7 @@ import { Route as DashboardCatalogIndexRouteImport } from './routes/dashboard/ca
 import { Route as AuthSignUpIndexRouteImport } from './routes/auth/sign-up/index'
 import { Route as AuthSignInIndexRouteImport } from './routes/auth/sign-in/index'
 import { Route as AuthCreateOrgIndexRouteImport } from './routes/auth/create-org/index'
+import { Route as DashboardCatalogNewRouteImport } from './routes/dashboard/catalog/new'
 import { Route as AuthSignInTasksChooseOrganizationIndexRouteImport } from './routes/auth/sign-in/tasks/choose-organization/index'
 
 const DashboardRouteRoute = DashboardRouteRouteImport.update({
@@ -77,6 +78,11 @@ const AuthCreateOrgIndexRoute = AuthCreateOrgIndexRouteImport.update({
   path: '/create-org/',
   getParentRoute: () => AuthRouteRoute,
 } as any)
+const DashboardCatalogNewRoute = DashboardCatalogNewRouteImport.update({
+  id: '/catalog/new',
+  path: '/catalog/new',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
 const AuthSignInTasksChooseOrganizationIndexRoute =
   AuthSignInTasksChooseOrganizationIndexRouteImport.update({
     id: '/sign-in/tasks/choose-organization/',
@@ -89,6 +95,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRouteRouteWithChildren
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/dashboard/': typeof DashboardIndexRoute
+  '/dashboard/catalog/new': typeof DashboardCatalogNewRoute
   '/auth/create-org': typeof AuthCreateOrgIndexRoute
   '/auth/sign-in': typeof AuthSignInIndexRoute
   '/auth/sign-up': typeof AuthSignUpIndexRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteRouteWithChildren
   '/dashboard': typeof DashboardIndexRoute
+  '/dashboard/catalog/new': typeof DashboardCatalogNewRoute
   '/auth/create-org': typeof AuthCreateOrgIndexRoute
   '/auth/sign-in': typeof AuthSignInIndexRoute
   '/auth/sign-up': typeof AuthSignUpIndexRoute
@@ -117,6 +125,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRouteRouteWithChildren
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/dashboard/': typeof DashboardIndexRoute
+  '/dashboard/catalog/new': typeof DashboardCatalogNewRoute
   '/auth/create-org/': typeof AuthCreateOrgIndexRoute
   '/auth/sign-in/': typeof AuthSignInIndexRoute
   '/auth/sign-up/': typeof AuthSignUpIndexRoute
@@ -133,6 +142,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/dashboard/'
+    | '/dashboard/catalog/new'
     | '/auth/create-org'
     | '/auth/sign-in'
     | '/auth/sign-up'
@@ -146,6 +156,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/dashboard'
+    | '/dashboard/catalog/new'
     | '/auth/create-org'
     | '/auth/sign-in'
     | '/auth/sign-up'
@@ -160,6 +171,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/dashboard/'
+    | '/dashboard/catalog/new'
     | '/auth/create-org/'
     | '/auth/sign-in/'
     | '/auth/sign-up/'
@@ -255,6 +267,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCreateOrgIndexRouteImport
       parentRoute: typeof AuthRouteRoute
     }
+    '/dashboard/catalog/new': {
+      id: '/dashboard/catalog/new'
+      path: '/catalog/new'
+      fullPath: '/dashboard/catalog/new'
+      preLoaderRoute: typeof DashboardCatalogNewRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
     '/auth/sign-in/tasks/choose-organization/': {
       id: '/auth/sign-in/tasks/choose-organization/'
       path: '/sign-in/tasks/choose-organization'
@@ -286,6 +305,7 @@ const AuthRouteRouteWithChildren = AuthRouteRoute._addFileChildren(
 
 interface DashboardRouteRouteChildren {
   DashboardIndexRoute: typeof DashboardIndexRoute
+  DashboardCatalogNewRoute: typeof DashboardCatalogNewRoute
   DashboardCatalogIndexRoute: typeof DashboardCatalogIndexRoute
   DashboardClientsIndexRoute: typeof DashboardClientsIndexRoute
   DashboardInventoryIndexRoute: typeof DashboardInventoryIndexRoute
@@ -294,6 +314,7 @@ interface DashboardRouteRouteChildren {
 
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardIndexRoute: DashboardIndexRoute,
+  DashboardCatalogNewRoute: DashboardCatalogNewRoute,
   DashboardCatalogIndexRoute: DashboardCatalogIndexRoute,
   DashboardClientsIndexRoute: DashboardClientsIndexRoute,
   DashboardInventoryIndexRoute: DashboardInventoryIndexRoute,

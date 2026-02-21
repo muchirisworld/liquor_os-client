@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useSuspenseQuery, useQueryClient } from '@tanstack/react-query'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { Link } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -9,30 +9,12 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import {
-  getProducts,
-  getCategories,
-  getStoreTags,
-} from '@/server/queries/products'
-import { ProductWizard } from './product-wizard'
+import { getProducts } from '@/server/queries/products'
 
 export function ProductsTab() {
-  const [wizardOpen, setWizardOpen] = useState(false)
-  const queryClient = useQueryClient()
-
   const { data: products } = useSuspenseQuery({
     queryKey: ['products'],
     queryFn: () => getProducts(),
-  })
-
-  const { data: categories } = useSuspenseQuery({
-    queryKey: ['categories'],
-    queryFn: () => getCategories(),
-  })
-
-  const { data: storeTags } = useSuspenseQuery({
-    queryKey: ['storeTags'],
-    queryFn: () => getStoreTags(),
   })
 
   return (
@@ -45,7 +27,9 @@ export function ProductsTab() {
             catalog
           </p>
         </div>
-        <Button onClick={() => setWizardOpen(true)}>+ New Product</Button>
+        <Link to="/dashboard/catalog/new">
+          <Button>+ New Product</Button>
+        </Link>
       </div>
 
       {/* Product list */}
@@ -55,13 +39,9 @@ export function ProductsTab() {
             <p className="text-muted-foreground text-sm">
               No products yet. Create your first product to get started.
             </p>
-            <Button
-              className="mt-4"
-              variant="outline"
-              onClick={() => setWizardOpen(true)}
-            >
-              + Create Product
-            </Button>
+            <Link to="/dashboard/catalog/new" className="inline-block mt-4">
+              <Button variant="outline">+ Create Product</Button>
+            </Link>
           </CardContent>
         </Card>
       ) : (
@@ -126,18 +106,6 @@ export function ProductsTab() {
           ))}
         </div>
       )}
-
-      {/* Product creation wizard */}
-      <ProductWizard
-        open={wizardOpen}
-        onOpenChange={setWizardOpen}
-        categories={categories}
-        storeTags={storeTags}
-        onCreated={() => {
-          queryClient.invalidateQueries({ queryKey: ['products'] })
-          setWizardOpen(false)
-        }}
-      />
     </div>
   )
 }
