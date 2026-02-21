@@ -131,7 +131,7 @@ export function ProductForm({
       })
       onCreated()
     } catch (error) {
-      console.error('Failed to create product:', error)
+      alert('Failed to create product. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
