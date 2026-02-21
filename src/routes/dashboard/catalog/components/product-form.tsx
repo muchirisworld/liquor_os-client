@@ -17,12 +17,12 @@ export type WizardStep = 1 | 2 | 3 | 4 | 5
 export interface SelectedAxis {
   id: string
   name: string
-  values: string[] // value names from tag options
+  values: Array<{ id: string; name: string }> // tag options with IDs
 }
 
 export interface VariantCombination {
   key: string
-  parts: Array<{ axisName: string; value: string }>
+  parts: Array<{ axisName: string; value: string; tagOptionId: string }>
   label: string
   price: string
   quantity: number
@@ -120,33 +120,13 @@ export function ProductForm({
           originalPrice: data.originalPrice || undefined,
           status: data.status,
           tagIds: data.tagIds,
-          variants: data.selectedAxes
-            .map((axis) => {
-              const axisValues = new Map<
-                string,
-                { price: string; quantity: number }
-              >()
-              for (const combo of data.combinations.filter((c) => c.selected)) {
-                const part = combo.parts.find((p) => p.axisName === axis.name)
-                if (part && !axisValues.has(part.value)) {
-                  axisValues.set(part.value, {
-                    price: combo.price || data.price,
-                    quantity: combo.quantity,
-                  })
-                }
-              }
-              return {
-                variantId: axis.id,
-                values: Array.from(axisValues.entries()).map(
-                  ([value, info]) => ({
-                    value,
-                    price: info.price,
-                    quantity: info.quantity,
-                  }),
-                ),
-              }
-            })
-            .filter((a) => a.values.length > 0),
+          variants: data.combinations
+            .filter((c) => c.selected)
+            .map((combo) => ({
+              price: combo.price || data.price,
+              quantity: combo.quantity,
+              tagOptionIds: combo.parts.map((p) => p.tagOptionId),
+            })),
         },
       })
       onCreated()
@@ -486,13 +466,13 @@ function generateCombinations(
   if (axes.length === 0) return []
 
   const valueArrays = axes.map((axis) =>
-    axis.values.map((v) => ({ axisName: axis.name, value: v })),
+    axis.values.map((v) => ({ axisName: axis.name, value: v.name, tagOptionId: v.id })),
   )
 
   const product = cartesianProduct(valueArrays)
 
   return product.map((parts) => ({
-    key: parts.map((p) => `${p.axisName}:${p.value}`).join('|'),
+    key: parts.map((p) => `${p.axisName}:${p.tagOptionId}`).join('|'),
     parts,
     label: parts.map((p) => p.value).join(' / '),
     price: basePrice || '0',
@@ -545,7 +525,7 @@ function StepVariants({
         {
           id: tag.id,
           name: tag.name,
-          values: tag.tagOptions.map((o) => o.name),
+          values: tag.tagOptions.map((o) => ({ id: o.id, name: o.name })),
         },
       ]
     }
@@ -811,7 +791,16 @@ function StepReview({
                 key={combo.key}
                 className="flex justify-between py-1 border-b"
               >
-                <span>{combo.label}</span>
+                <div className="flex flex-col">
+                  <span>{combo.label}</span>
+                  <div className="flex gap-1">
+                    {combo.parts.map((p) => (
+                      <span key={p.tagOptionId} className="text-[10px] text-muted-foreground bg-muted px-1 rounded">
+                        {p.axisName}: {p.value}
+                      </span>
+                    ))}
+                  </div>
+                </div>
                 <span className="font-mono text-muted-foreground">
                   ${Number(combo.price).toFixed(2)} · {combo.quantity} qty
                 </span>

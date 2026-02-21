@@ -7,14 +7,14 @@ import {
     products,
     productTags,
     productVariants,
-    productVariantValues,
+    productVariantTagOptions,
     stocks,
     variants,
     tags,
 } from '@/db/schema'
 import { db } from '@/db'
 
-const authFn = createServerFn().middleware([authMiddleware])
+const authFn = createServerFn({ method: 'POST' }).middleware([authMiddleware])
 
 const log = createLogger({
     defaultMeta: { service: 'products' },
@@ -52,8 +52,16 @@ export const getProducts = authFn.handler(async ({ context }) => {
                 subcategory: true,
                 variants: {
                     with: {
-                        variant: true,
-                        productVariantValues: true,
+                        productVariantTagOptions: {
+                            with: {
+                                tagOption: {
+                                    with: {
+                                        parentTag: true,
+                                    },
+                                },
+                            },
+                        },
+                        stocks: true,
                     },
                 },
                 tags: {
@@ -149,15 +157,10 @@ export const getStoreTags = authFn.handler(async ({ context }) => {
 
 // ── Create product with variants ──────────────────────────────────────
 
-const variantValueSchema = z.object({
-    value: z.string().min(1, 'Value is required'),
+const variantSchema = z.object({
     price: z.string().min(1, 'Price is required'),
     quantity: z.number().int().min(0, 'Quantity must be >= 0'),
-})
-
-const variantAxisSchema = z.object({
-    variantId: z.string().uuid('Invalid variant ID'),
-    values: z.array(variantValueSchema).min(1, 'At least one value is required'),
+    tagOptionIds: z.array(z.string().uuid()).min(1, 'At least one tag option is required'),
 })
 
 const createProductSchema = z.object({
@@ -169,7 +172,7 @@ const createProductSchema = z.object({
     originalPrice: z.string().optional(),
     status: z.enum(['active', 'draft', 'archived']).default('draft'),
     tagIds: z.array(z.string().uuid()).default([]),
-    variants: z.array(variantAxisSchema).default([]),
+    variants: z.array(variantSchema).default([]),
 })
 
 export const createProduct = authFn
@@ -202,7 +205,7 @@ export const createProduct = authFn
 
                 log.info('Created product:', { id: newProduct.id })
 
-                // 2. Insert product tags
+                // 2. Insert product tags (Many-to-Many)
                 if (data.tagIds.length > 0) {
                     await tx.insert(productTags).values(
                         data.tagIds.map((tagId) => ({
@@ -213,36 +216,40 @@ export const createProduct = authFn
                     log.info(`Attached ${data.tagIds.length} tags`)
                 }
 
-                // 3. Insert product variants + values + stocks
-                for (const axis of data.variants) {
+                // 3. Insert product variants (SKUs)
+                for (const variant of data.variants) {
+                    // Fetch tag option names to generate a readable name
+                    const selectedOptions = await tx.query.tagOptions.findMany({
+                        where: (opts, { inArray }) => inArray(opts.id, variant.tagOptionIds),
+                    })
+                    const variantName = selectedOptions.map(o => o.name).join(' / ')
+
                     const [pv] = await tx
                         .insert(productVariants)
                         .values({
                             productId: newProduct.id,
-                            variantId: axis.variantId,
+                            name: variantName,
+                            price: variant.price,
                         })
                         .returning()
 
-                    for (const val of axis.values) {
-                        // Create stock entry
-                        const [stockEntry] = await tx
-                            .insert(stocks)
-                            .values({
-                                productVariantId: pv.id,
-                                quantity: val.quantity,
-                            })
-                            .returning()
+                    // Insert stocks for this variant
+                    await tx.insert(stocks).values({
+                        productVariantId: pv.id,
+                        quantity: variant.quantity,
+                    })
 
-                        // Create variant value
-                        await tx.insert(productVariantValues).values({
-                            productVariantId: pv.id,
-                            value: val.value,
-                            price: val.price,
-                            stockId: stockEntry.id,
-                        })
+                    // Insert tag option associations (Many-to-Many)
+                    if (variant.tagOptionIds.length > 0) {
+                        await tx.insert(productVariantTagOptions).values(
+                            variant.tagOptionIds.map((tagOptionId) => ({
+                                productVariantId: pv.id,
+                                tagOptionId,
+                            }))
+                        )
                     }
 
-                    log.info(`Created variant axis with ${axis.values.length} values`)
+                    log.info(`Created variant SKU with ${variant.tagOptionIds.length} options`)
                 }
 
                 return newProduct
@@ -255,7 +262,7 @@ export const createProduct = authFn
 
             if (error?.cause?.code === '23503') {
                 throw new Error(
-                    'A referenced entity (store, category, tag, or variant) does not exist.',
+                    'A referenced entity (store, category, tag, or tag option) does not exist.',
                 )
             }
 

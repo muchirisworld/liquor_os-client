@@ -2,7 +2,7 @@ import { relations } from "drizzle-orm"
 import { index, integer, pgTable, uuid } from "drizzle-orm/pg-core"
 
 import { lifecycleDates } from "./utils"
-import { productVariants, productVariantValues } from "./variants"
+import { productVariants } from "./variants"
 
 export const stocks = pgTable(
   "stocks",
@@ -21,10 +21,6 @@ export const stocksRelations = relations(stocks, ({ one }) => ({
   productVariant: one(productVariants, {
     fields: [stocks.productVariantId],
     references: [productVariants.id],
-  }),
-  productVariantValues: one(productVariantValues, {
-    fields: [stocks.id],
-    references: [productVariantValues.stockId],
   }),
 }))
 

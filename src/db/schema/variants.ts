@@ -14,9 +14,9 @@ import { products } from "./products"
 import { stocks } from "./stocks"
 import { stores } from "./stores"
 import { lifecycleDates } from "./utils"
-import { tags } from "./tags"
+import { tags, tagOptions } from "./tags"
 
-// store variants
+// store variants (Legacy - Consider removal if tags fulfill all needs)
 export const variants = pgTable(
   "variants",
   {
@@ -42,6 +42,10 @@ export const variantsRelations = relations(variants, ({ one }) => ({
 export type Variant = typeof variants.$inferSelect
 export type NewVariant = typeof variants.$inferInsert
 
+/**
+ * product_variants represents a single variant SKU of a product.
+ * Each row is a specific combination of tag options (e.g., Red / XL).
+ */
 export const productVariants = pgTable(
   "product_variants",
   {
@@ -49,14 +53,12 @@ export const productVariants = pgTable(
     productId: uuid("product_id")
       .references(() => products.id, { onDelete: "cascade" })
       .notNull(),
-    variantId: uuid("variant_id")
-      .references(() => tags.id, { onDelete: "cascade" })
-      .notNull(),
+    name: text("name"), // Optional human-readable name like "Red / XL"
+    price: decimal("price", { precision: 10, scale: 2 }), // Variant-specific price override
     ...lifecycleDates,
   },
   (table) => [
     index("product_variants_product_id_idx").on(table.productId),
-    index("product_variants_variant_id_idx").on(table.variantId),
   ]
 )
 
@@ -68,52 +70,51 @@ export const productVariantsRelations = relations(
       references: [products.id],
       relationName: "productVariants",
     }),
-    variant: one(tags, {
-      fields: [productVariants.variantId],
-      references: [tags.id],
-    }),
-    productVariantValues: many(productVariantValues),
+    productVariantTagOptions: many(productVariantTagOptions),
+    stocks: many(stocks),
   })
 )
 
 export type ProductVariant = typeof productVariants.$inferSelect
 export type NewProductVariant = typeof productVariants.$inferInsert
 
-export const productVariantValues = pgTable(
-  "product_variant_values",
+/**
+ * many-to-many relationship between product variants and tag options.
+ * A variant (SKU) is defined by one or more tag options.
+ */
+export const productVariantTagOptions = pgTable(
+  "product_variant_tag_options",
   {
     productVariantId: uuid("product_variant_id")
       .references(() => productVariants.id, { onDelete: "cascade" })
       .notNull(),
-    value: text("value").notNull(),
-    price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-    stockId: uuid("stock_id")
-      .references(() => stocks.id, { onDelete: "cascade" })
+    tagOptionId: uuid("tag_option_id")
+      .references(() => tagOptions.id, { onDelete: "cascade" })
       .notNull(),
-    ...lifecycleDates,
   },
   (table) => [
     primaryKey({
-      name: "product_variant_values_pk",
-      columns: [table.productVariantId, table.value],
+      name: "product_variant_tag_options_pk",
+      columns: [table.productVariantId, table.tagOptionId],
     }),
-    index("variant_values_product_variant_id_idx").on(table.productVariantId),
-    index("variant_values_stock_id_idx").on(table.stockId),
+    index("product_variant_tag_options_variant_id_idx").on(table.productVariantId),
+    index("product_variant_tag_options_tag_option_id_idx").on(table.tagOptionId),
   ]
 )
 
-export const productVariantValuesRelations = relations(
-  productVariantValues,
+export const productVariantTagOptionsRelations = relations(
+  productVariantTagOptions,
   ({ one }) => ({
     productVariant: one(productVariants, {
-      fields: [productVariantValues.productVariantId],
+      fields: [productVariantTagOptions.productVariantId],
       references: [productVariants.id],
+    }),
+    tagOption: one(tagOptions, {
+      fields: [productVariantTagOptions.tagOptionId],
+      references: [tagOptions.id],
     }),
   })
 )
-
-export type ProductVariantValue = typeof productVariantValues.$inferSelect
-export type NewProductVariantValue = typeof productVariantValues.$inferInsert
 
 export const variantTags = pgTable(
   "variant_tags",

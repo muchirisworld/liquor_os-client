@@ -6,7 +6,7 @@ import { authMiddleware } from '@/middleware/authMiddleware'
 import { tagOptions, tagPresets, tags } from '@/db/schema'
 import { db } from '@/db'
 
-const authFn = createServerFn().middleware([authMiddleware])
+const authFn = createServerFn({ method: 'POST' }).middleware([authMiddleware])
 
 const log = createLogger({
   defaultMeta: { service: 'tags' },

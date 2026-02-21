@@ -43,6 +43,13 @@
       "when": 1771634014363,
       "tag": "0005_natural_vivisector",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1771681601385,
+      "tag": "0006_furry_norrin_radd",
+      "breakpoints": true
     }
   ]
 }
