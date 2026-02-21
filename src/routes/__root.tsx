@@ -1,11 +1,12 @@
 import { shadcn } from '@clerk/themes'
 import { ClerkProvider } from '@clerk/tanstack-react-start'
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
+import { HeadContent, Outlet, Scripts, createRootRoute } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import appCss from '../styles.css?url'
+import { NotFoundPage } from '@/components/elements/not-found'
 
 const getQueryClient = (() => {
   let browserQueryClient: QueryClient | undefined
@@ -39,7 +40,9 @@ export const Route = createRootRoute({
       },
     ],
   }),
-
+  // notFoundComponent: () => import('@/components/elements/not-found').then((mod) => mod.NotFoundPage),
+  notFoundComponent: NotFoundPage,
+  component: () => <Outlet />,
   shellComponent: RootDocument,
 })
 
