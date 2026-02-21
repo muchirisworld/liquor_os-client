@@ -13,6 +13,7 @@ import {
 import { products } from "./products"
 import { stores } from "./stores"
 import { lifecycleDates } from "./utils"
+import { productVariantTagOptions } from "./variants"
 
 // store tags
 export const tags = pgTable(
@@ -70,6 +71,7 @@ export const productTagsRelations = relations(productTags, ({ one }) => ({
   product: one(products, {
     fields: [productTags.productId],
     references: [products.id],
+    relationName: "productTags",
   }),
   tag: one(tags, { fields: [productTags.tagId], references: [tags.id] }),
 }))
@@ -88,8 +90,9 @@ export const tagOptions = pgTable("tag_options", {
 export type TagOption = typeof tagOptions.$inferSelect
 export type NewTagOption = typeof tagOptions.$inferInsert
 
-export const tagOptionRelations = relations(tagOptions, ({ one }) => ({
-  parentTag: one(tags, { fields: [tagOptions.tagId], references: [tags.id] }),
+export const tagOptionRelations = relations(tagOptions, ({ one, many }) => ({
+  parentTag: one(tags, { fields: [tagOptions.tagId], references: [tags.id], relationName: "tagOptions" }),
+  productVariantTagOptions: many(productVariantTagOptions),
 }))
 
 export const tagPresets = pgTable(

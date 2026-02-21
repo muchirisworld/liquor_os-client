@@ -36,6 +36,20 @@
       "when": 1771596321968,
       "tag": "0004_fresh_iron_fist",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1771634014363,
+      "tag": "0005_natural_vivisector",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1771681601385,
+      "tag": "0006_furry_norrin_radd",
+      "breakpoints": true
     }
   ]
 }
