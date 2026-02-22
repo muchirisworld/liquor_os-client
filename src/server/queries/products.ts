@@ -256,14 +256,26 @@ export const createProduct = authFn
                     })
 
                     // Link to variant values
+                    const requiredOptionNames = data.options.map((o) => o.name)
+                    for (const reqOpt of requiredOptionNames) {
+                        if (!v.optionValues[reqOpt]) {
+                            throw new Error(
+                                `Variant "${v.name || 'unnamed'}" is missing value for option "${reqOpt}"`,
+                            )
+                        }
+                    }
+
                     for (const [optName, valName] of Object.entries(v.optionValues)) {
                         const valId = optionMap.get(optName)?.valueMap.get(valName as string)
-                        if (valId) {
-                            await tx.insert(productVariantValues).values({
-                                productVariantId: pv.id,
-                                variantValueId: valId,
-                            })
+                        if (!valId) {
+                            throw new Error(
+                                `Invalid option "${optName}" or value "${valName}" for variant "${v.name || 'unnamed'}"`,
+                            )
                         }
+                        await tx.insert(productVariantValues).values({
+                            productVariantId: pv.id,
+                            variantValueId: valId,
+                        })
                     }
                 }
 

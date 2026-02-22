@@ -172,7 +172,7 @@ export function ProductForm({
         </div>
       </div>
 
-      <div className="min-h-[400px]">
+      <div className="min-h-100">
         {step === 1 && (
           <StepBasicInfo
             data={data}
@@ -504,6 +504,20 @@ function StepVariants({
       })
 
       const label = parts.map((p) => p.value).join(' / ')
+
+      // Try to find a match in existing data.combinations to preserve entered data
+      const existing = data.combinations.find((c) => {
+        // Must match all parts in the new combination (handles removal and exact matches)
+        return Object.entries(partsMap).every(([k, v]) => c.parts[k] === v)
+      })
+
+      if (existing) {
+        return {
+          ...existing,
+          label,
+        }
+      }
+
       return {
         sku: '',
         parts: partsMap,
@@ -580,7 +594,7 @@ function StepVariants({
                     className="h-8 text-xs"
                   />
                 </div>
-                <div className="flex-[2] space-y-1">
+                <div className="flex-2 space-y-1">
                   <Label className="text-[10px]">Values (comma separated)</Label>
                   <Input
                     value={newOptionValues}
@@ -629,7 +643,7 @@ function StepVariants({
               <span>Inventory</span>
               <span></span>
             </div>
-            <div className="max-h-[300px] overflow-y-auto">
+            <div className="max-h-75 overflow-y-auto">
               {data.combinations.map((combo, i) => (
                 <div key={i} className={`grid grid-cols-[1fr_2fr_1fr_1fr_auto] gap-2 items-center px-3 py-2 border-b last:border-b-0 ${!combo.selected ? 'opacity-40' : ''}`}>
                   <span className="font-medium truncate">{combo.label}</span>
@@ -679,7 +693,7 @@ function StepVariants({
         <div className="grid grid-cols-1 gap-3">
           {data.media.map((m, i) => (
             <Card key={i} className="p-3 flex gap-4 items-start">
-              <div className="h-16 w-16 rounded bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
+              <div className="h-16 w-16 rounded bg-muted flex items-center justify-center overflow-hidden shrink-0">
                 {m.url ? (
                   <img src={m.url} alt="preview" className="h-full w-full object-cover" />
                 ) : (
@@ -830,7 +844,7 @@ function StepReview({
             <span>Price</span>
             <span>Inventory</span>
           </div>
-          <div className="max-h-[200px] overflow-y-auto">
+          <div className="max-h-50 overflow-y-auto">
             {activeVariants.map((v, i) => (
               <div key={i} className="grid grid-cols-4 gap-2 px-3 py-1.5 border-b last:border-b-0">
                 <span className="font-medium">{v.label}</span>

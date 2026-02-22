@@ -14,6 +14,7 @@ import {
 import { products } from "./products"
 import { stocks } from "./stocks"
 import { stores } from "./stores"
+import { tags } from "./tags"
 import { lifecycleDates } from "./utils"
 
 // store variants (Legacy - Consider removal if tags fulfill all needs)
@@ -192,10 +193,6 @@ export const variantTags = pgTable(
     ),
   ]
 )
-
-// Importing tags at the end to avoid circular dependency issues if possible, 
-// though Drizzle handles it usually.
-import { tags } from "./tags"
 
 export const variantTagsRelations = relations(variantTags, ({ one }) => ({
   variant: one(variants, {
