@@ -18,6 +18,7 @@ import { subcategories } from "./subcategories"
 import { productTags } from "./tags"
 import { lifecycleDates } from "./utils"
 import { productVariants } from "./variants"
+import { media } from "./media"
 
 export const productStatusEnum = pgEnum("product_status", [
   "active",
@@ -77,6 +78,7 @@ export const productsRelations = relations(products, ({ one, many }) => ({
   }),
   variants: many(productVariants, { relationName: "productVariants" }),
   tags: many(productTags, { relationName: "productTags" }),
+  media: many(media),
 }))
 
 export type Product = typeof products.$inferSelect

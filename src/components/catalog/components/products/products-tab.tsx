@@ -46,16 +46,25 @@ export function ProductsTab() {
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {products.map((product) => (
-            <Card
-              key={product.id}
-              className="group hover:border-foreground/20 transition-colors"
-            >
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between gap-2">
-                  <CardTitle className="text-sm font-semibold line-clamp-1">
-                    {product.name}
-                  </CardTitle>
+          {products.map((product) => {
+            const mainImage = product.media?.[0]?.url
+            return (
+              <Card
+                key={product.id}
+                className="group hover:border-foreground/20 transition-all overflow-hidden"
+              >
+                <div className="aspect-video bg-muted relative overflow-hidden">
+                  {mainImage ? (
+                    <img 
+                      src={mainImage} 
+                      alt={product.name} 
+                      className="object-cover w-full h-full group-hover:scale-105 transition-transform" 
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground/30 text-xs italic">
+                      No image
+                    </div>
+                  )}
                   <Badge
                     variant={
                       product.status === 'active'
@@ -64,46 +73,53 @@ export function ProductsTab() {
                           ? 'secondary'
                           : 'outline'
                     }
-                    className="text-[10px] shrink-0"
+                    className="absolute top-2 right-2 text-[10px] uppercase shadow-sm"
                   >
                     {product.status}
                   </Badge>
                 </div>
-                {product.category && (
-                  <CardDescription className="text-xs">
-                    {product.category.name}
-                    {product.subcategory
-                      ? ` / ${product.subcategory.name}`
-                      : ''}
-                  </CardDescription>
-                )}
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span className="font-mono font-semibold text-foreground text-sm">
-                    ${Number(product.price).toFixed(2)}
-                  </span>
-                  <span>
-                    {product.variants.length} variant
-                    {product.variants.length !== 1 ? 's' : ''}
-                  </span>
-                </div>
-                {product.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {product.tags.map((pt) => (
-                      <Badge
-                        key={pt.tagId}
-                        variant="outline"
-                        className="text-[10px]"
-                      >
-                        {pt.tag.name}
-                      </Badge>
-                    ))}
+                <CardHeader className="pb-2 pt-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <CardTitle className="text-sm font-bold line-clamp-1">
+                      {product.name}
+                    </CardTitle>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+                  {product.category && (
+                    <CardDescription className="text-[10px] uppercase tracking-wider font-medium opacity-70">
+                      {product.category.name}
+                      {product.subcategory
+                        ? ` / ${product.subcategory.name}`
+                        : ''}
+                    </CardDescription>
+                  )}
+                </CardHeader>
+                <CardContent className="pt-0 pb-4">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span className="font-mono font-bold text-foreground text-base">
+                      ${Number(product.price).toFixed(2)}
+                    </span>
+                    <span className="bg-muted px-1.5 py-0.5 rounded text-[10px] font-medium">
+                      {product.variants.length} variant
+                      {product.variants.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  {product.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-3">
+                      {product.tags.map((pt) => (
+                        <Badge
+                          key={pt.tagId}
+                          variant="outline"
+                          className="text-[9px] h-4"
+                        >
+                          {pt.tag.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
       )}
     </div>

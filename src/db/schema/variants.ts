@@ -2,6 +2,7 @@ import { relations } from "drizzle-orm"
 import {
   decimal,
   index,
+  integer,
   pgTable,
   primaryKey,
   text,
@@ -14,7 +15,6 @@ import { products } from "./products"
 import { stocks } from "./stocks"
 import { stores } from "./stores"
 import { lifecycleDates } from "./utils"
-import { tags, tagOptions } from "./tags"
 
 // store variants (Legacy - Consider removal if tags fulfill all needs)
 export const variants = pgTable(
@@ -43,8 +43,61 @@ export type Variant = typeof variants.$inferSelect
 export type NewVariant = typeof variants.$inferInsert
 
 /**
+ * variant_options defines attributes per product (e.g., Color, Size).
+ */
+export const variantOptions = pgTable(
+  "variant_options",
+  {
+    id: uuid("id").primaryKey().defaultRandom().notNull(),
+    productId: uuid("product_id")
+      .references(() => products.id, { onDelete: "cascade" })
+      .notNull(),
+    name: text("name").notNull(),
+    position: integer("position").default(0),
+    ...lifecycleDates,
+  },
+  (table) => [
+    index("variant_options_product_id_idx").on(table.productId),
+  ]
+)
+
+export const variantOptionsRelations = relations(variantOptions, ({ one, many }) => ({
+  product: one(products, { fields: [variantOptions.productId], references: [products.id] }),
+  variantValues: many(variantValues),
+}))
+
+export type VariantOption = typeof variantOptions.$inferSelect
+export type NewVariantOption = typeof variantOptions.$inferInsert
+
+/**
+ * variant_values defines possible values for an option (e.g., Red, Blue).
+ */
+export const variantValues = pgTable(
+  "variant_values",
+  {
+    id: uuid("id").primaryKey().defaultRandom().notNull(),
+    optionId: uuid("option_id")
+      .references(() => variantOptions.id, { onDelete: "cascade" })
+      .notNull(),
+    value: text("value").notNull(),
+    ...lifecycleDates,
+  },
+  (table) => [
+    index("variant_values_option_id_idx").on(table.optionId),
+  ]
+)
+
+export const variantValuesRelations = relations(variantValues, ({ one, many }) => ({
+  variantOption: one(variantOptions, { fields: [variantValues.optionId], references: [variantOptions.id] }),
+  productVariantValues: many(productVariantValues),
+}))
+
+export type VariantValue = typeof variantValues.$inferSelect
+export type NewVariantValue = typeof variantValues.$inferInsert
+
+/**
  * product_variants represents a single variant SKU of a product.
- * Each row is a specific combination of tag options (e.g., Red / XL).
+ * Each row is a specific combination of variant values (e.g., Red / XL).
  */
 export const productVariants = pgTable(
   "product_variants",
@@ -54,7 +107,9 @@ export const productVariants = pgTable(
       .references(() => products.id, { onDelete: "cascade" })
       .notNull(),
     name: text("name"), // Optional human-readable name like "Red / XL"
+    sku: text("sku"),
     price: decimal("price", { precision: 10, scale: 2 }), // Variant-specific price override
+    inventory: integer("inventory").default(0), // Total inventory across all stocks for this variant
     ...lifecycleDates,
   },
   (table) => [
@@ -70,7 +125,7 @@ export const productVariantsRelations = relations(
       references: [products.id],
       relationName: "productVariants",
     }),
-    productVariantTagOptions: many(productVariantTagOptions),
+    productVariantValues: many(productVariantValues),
     stocks: many(stocks),
   })
 )
@@ -79,39 +134,38 @@ export type ProductVariant = typeof productVariants.$inferSelect
 export type NewProductVariant = typeof productVariants.$inferInsert
 
 /**
- * many-to-many relationship between product variants and tag options.
- * A variant (SKU) is defined by one or more tag options.
+ * Mapping between a specific Variant (SKU) and its constituent variantValues.
  */
-export const productVariantTagOptions = pgTable(
-  "product_variant_tag_options",
+export const productVariantValues = pgTable(
+  "product_variant_values",
   {
     productVariantId: uuid("product_variant_id")
       .references(() => productVariants.id, { onDelete: "cascade" })
       .notNull(),
-    tagOptionId: uuid("tag_option_id")
-      .references(() => tagOptions.id, { onDelete: "cascade" })
+    variantValueId: uuid("variant_value_id")
+      .references(() => variantValues.id, { onDelete: "cascade" })
       .notNull(),
   },
   (table) => [
     primaryKey({
-      name: "product_variant_tag_options_pk",
-      columns: [table.productVariantId, table.tagOptionId],
+      name: "product_variant_values_pk",
+      columns: [table.productVariantId, table.variantValueId],
     }),
-    index("product_variant_tag_options_variant_id_idx").on(table.productVariantId),
-    index("product_variant_tag_options_tag_option_id_idx").on(table.tagOptionId),
+    index("product_variant_values_variant_id_idx").on(table.productVariantId),
+    index("product_variant_values_value_id_idx").on(table.variantValueId),
   ]
 )
 
-export const productVariantTagOptionsRelations = relations(
-  productVariantTagOptions,
+export const productVariantValuesRelations = relations(
+  productVariantValues,
   ({ one }) => ({
     productVariant: one(productVariants, {
-      fields: [productVariantTagOptions.productVariantId],
+      fields: [productVariantValues.productVariantId],
       references: [productVariants.id],
     }),
-    tagOption: one(tagOptions, {
-      fields: [productVariantTagOptions.tagOptionId],
-      references: [tagOptions.id],
+    variantValue: one(variantValues, {
+      fields: [productVariantValues.variantValueId],
+      references: [variantValues.id],
     }),
   })
 )
@@ -138,6 +192,10 @@ export const variantTags = pgTable(
     ),
   ]
 )
+
+// Importing tags at the end to avoid circular dependency issues if possible, 
+// though Drizzle handles it usually.
+import { tags } from "./tags"
 
 export const variantTagsRelations = relations(variantTags, ({ one }) => ({
   variant: one(variants, {
