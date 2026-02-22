@@ -713,17 +713,19 @@ function StepVariants({
                 <div className="space-y-1">
                   <Label className="text-[10px]">Link to Option (Optional)</Label>
                   <Select
-                    value={m.variantValue?.optionName || "none"}
+                    value={m.variantValue?.optionName || 'none'}
                     onValueChange={(v) => {
-                      if (v === "none") {
+                      if (!v || v === 'none') {
                         updateMedia(i, { variantValue: undefined })
                       } else {
-                        updateMedia(i, { variantValue: { optionName: v, value: "" } })
+                        updateMedia(i, { variantValue: { optionName: v, value: '' } })
                       }
                     }}
                   >
                     <SelectTrigger className="h-8 text-[10px]">
-                      <SelectValue placeholder="None" />
+                      <SelectValue>
+                        {m.variantValue?.optionName || 'None'}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">None</SelectItem>
@@ -740,12 +742,18 @@ function StepVariants({
                     <Label className="text-[10px]">Value</Label>
                     <Select
                       value={m.variantValue.value}
-                      onValueChange={(v) => 
-                        updateMedia(i, { variantValue: { ...m.variantValue!, value: v } })
-                      }
+                      onValueChange={(v) => {
+                        if (v) {
+                          updateMedia(i, {
+                            variantValue: { ...m.variantValue!, value: v },
+                          })
+                        }
+                      }}
                     >
                       <SelectTrigger className="h-8 text-[10px]">
-                        <SelectValue placeholder="Select value" />
+                        <SelectValue>
+                          {m.variantValue.value || 'Select value'}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         {data.options
