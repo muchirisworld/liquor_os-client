@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useSuspenseQuery, useQueryClient } from '@tanstack/react-query'
 import { getCategories, getStoreTags } from '@/server/queries/products'
+import { getTagPresets } from '@/server/queries/tags'
 import { ProductForm } from '@/components/catalog/components/products/product-form'
 import { Card, CardContent } from '@/components/ui/card'
 
@@ -22,6 +23,11 @@ function CreateProductPage() {
     queryFn: () => getStoreTags(),
   })
 
+  const { data: tagPresets } = useSuspenseQuery({
+    queryKey: ['tagPresets'],
+    queryFn: () => getTagPresets(),
+  })
+
   return (
     <div className="p-6 max-w-3xl mx-auto w-full">
       <div className="flex items-center justify-between mb-6">
@@ -33,6 +39,7 @@ function CreateProductPage() {
           <ProductForm
             categories={categories}
             storeTags={storeTags}
+            tagPresets={tagPresets}
             onCreated={() => {
               queryClient.invalidateQueries({ queryKey: ['products'] })
               navigate({

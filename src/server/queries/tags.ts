@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { createLogger, format, transports } from 'winston'
 import { authMiddleware } from '@/middleware/authMiddleware'
-import { tagOptions, tagPresets, tags } from '@/db/schema'
+import { tagPresets, tags } from '@/db/schema'
 import { db } from '@/db'
 
 const authFn = createServerFn({ method: 'POST' }).middleware([authMiddleware])
@@ -51,7 +51,6 @@ export const getTags = authFn.handler(async ({ context }) => {
 
 const createTagSchema = z.object({
   name: z.string().min(1, 'Tag name is required'),
-  storeId: z.string().min(1, 'Store ID is required'),
 })
 
 export const createTag = authFn
@@ -86,104 +85,6 @@ export const createTag = authFn
       }
 
       throw new Error('Failed to create tag. Please try again.')
-    }
-  })
-
-const createTagOptionsSchema = z.object({
-  tagId: z.string().min(1, 'Tag ID is required'),
-  options: z.array(z.string().min(1, 'Option name cannot be empty')),
-})
-
-export const createTagOptions = authFn
-  .inputValidator(createTagOptionsSchema)
-  .handler(async ({ data }) => {
-    const { tagId, options } = data
-
-    log.info(`Creating ${options.length} options for tag:`, tagId)
-
-    try {
-      const values = options.map((name) => ({ tagId, name }))
-
-      const newOptions = await db.insert(tagOptions).values(values).returning()
-
-      log.info(`Created ${newOptions.length} options`)
-      return newOptions
-    } catch (error) {
-      log.error('Failed to create tag options', {
-        error,
-        tagId,
-        optionCount: options.length,
-      })
-      throw new Error('Failed to create tag options. Please try again.')
-    }
-  })
-
-const deleteTagOptionSchema = z.object({
-  optionId: z.string().min(1, 'Option ID is required'),
-})
-
-export const deleteTagOption = authFn
-  .inputValidator(deleteTagOptionSchema)
-  .handler(async ({ data, context }) => {
-    const { optionId } = data
-    const { orgId } = context.auth
-
-    if (!orgId) {
-      throw new Error('Organization ID is required')
-    }
-
-    log.info('Deleting tag option:', optionId)
-
-    try {
-      const result = await db
-        .delete(tagOptions)
-        .where(eq(tagOptions.id, optionId))
-        .returning({ tagId: tagOptions.tagId })
-
-      if (result.length === 0) {
-        throw new Error('Tag option not found')
-      }
-
-      const tag = await db
-        .select({ storeId: tags.storeId })
-        .from(tags)
-        .where(eq(tags.id, result[0].tagId))
-        .limit(1)
-
-      if (tag.length === 0 || tag[0].storeId !== orgId) {
-        throw new Error('Unauthorized: Tag option does not belong to your organization')
-      }
-
-      log.info('Deleted tag option:', optionId)
-      return { success: true }
-    } catch (error) {
-      log.error('Failed to delete tag option', { error, optionId })
-      throw new Error('Failed to delete tag option. Please try again.')
-    }
-  })
-
-const getTagOptionsSchema = z.object({
-  tagId: z.string().min(1, 'Tag ID is required'),
-})
-
-export const getTagOptions = authFn
-  .inputValidator(getTagOptionsSchema)
-  .handler(async ({ data }) => {
-    const { tagId } = data
-
-    log.info('Fetching options for tag:', tagId)
-
-    try {
-      const options = await db
-        .select()
-        .from(tagOptions)
-        .where(eq(tagOptions.tagId, tagId))
-
-      log.info(`Found ${options.length} options for tag:`, tagId)
-      return options
-    } catch (error) {
-      log.error('Failed to fetch tag options', { error, tagId })
-      throw new Error('Failed to fetch tag options. Please try again.')
     }
   })
 

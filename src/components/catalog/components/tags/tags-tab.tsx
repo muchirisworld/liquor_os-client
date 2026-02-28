@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useForm } from '@tanstack/react-form'
 import { useSuspenseQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@clerk/tanstack-react-start'
@@ -11,30 +11,13 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  TagsInput,
-  TagsInputInput,
-  TagsInputItem,
-  TagsInputList,
-} from '@/components/ui/tags-input'
+import { Badge } from '@/components/ui/badge'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { Save, Trash } from '@hugeicons/core-free-icons'
-import type { TCreateTagSchema } from '@/lib/validators'
-import { createTagSchema } from '@/lib/validators'
+import { Trash, Save, PlusSignIcon } from '@hugeicons/core-free-icons'
 import {
   createTag,
-  createTagOptions,
   createTagPreset,
-  deleteTagOption,
   deleteTagPreset,
-  getTagOptions,
   getTagPresets,
   getTags,
 } from '@/server/queries/tags'
@@ -53,43 +36,86 @@ export function TagsTab() {
 
   return (
     <div className="max-w-4xl space-y-8">
-      <h1 className="text-2xl font-bold">Tag Management</h1>
+      <h1 className="text-2xl font-bold">Tag & Preset Management</h1>
 
-      <CreateTagForm storeId={orgId!} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <CreateTagForm />
+        <CreatePresetForm onCreated={() => refetchPresets()} />
+      </div>
 
-      {tags.length > 0 && (
-        <div className="space-y-6">
-          <h2 className="text-xl font-semibold">Active Tags</h2>
-          {tags.map((tag) => (
-            <TagOptionsManager
-              key={tag.id}
-              tag={tag}
-              presets={presets}
-              onPresetChange={() => refetchPresets()}
-            />
+      <div className="space-y-6">
+        <h2 className="text-xl font-semibold">Metadata Tags</h2>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-wrap gap-2">
+              {tags.map((tag) => (
+                <Badge key={tag.id} variant="secondary" className="px-3 py-1 text-sm flex gap-2 items-center">
+                  {tag.name}
+                </Badge>
+              ))}
+              {tags.length === 0 && (
+                <p className="text-sm text-muted-foreground italic">No tags created yet.</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="space-y-6">
+        <h2 className="text-xl font-semibold">Variant Option Presets</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {presets.map((preset) => (
+            <Card key={preset.id}>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base">{preset.name}</CardTitle>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 text-destructive"
+                    onClick={async () => {
+                      if(confirm('Delete preset?')) {
+                        await deleteTagPreset({ data: { presetId: preset.id } })
+                        refetchPresets()
+                      }
+                    }}
+                  >
+                    <HugeiconsIcon icon={Trash} size={14} />
+                  </Button>
+                </div>
+                <CardDescription>Option Name: {preset.tagName}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-1">
+                  {preset.options.map((opt, i) => (
+                    <Badge key={i} variant="outline" className="text-[10px]">{opt}</Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           ))}
+          {presets.length === 0 && (
+            <p className="text-sm text-muted-foreground italic col-span-2">No presets created yet.</p>
+          )}
         </div>
-      )}
+      </div>
     </div>
   )
 }
 
-function CreateTagForm({ storeId }: { storeId: string }) {
+function CreateTagForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const queryClient = useQueryClient()
 
   const form = useForm({
-    validators: {
-      onSubmit: createTagSchema,
-    },
     defaultValues: {
       name: '',
-      storeId,
-    } as TCreateTagSchema,
+    },
     onSubmit: async ({ value }) => {
+      if (!value.name.trim()) return
       setIsSubmitting(true)
       try {
-        await createTag({ data: value })
+        await createTag({ data: { name: value.name } })
         await queryClient.invalidateQueries({ queryKey: ['tags'] })
         form.reset()
       } finally {
@@ -101,8 +127,8 @@ function CreateTagForm({ storeId }: { storeId: string }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Create New Tag</CardTitle>
-        <CardDescription>(e.g., Color, Size).</CardDescription>
+        <CardTitle className="text-lg">New Metadata Tag</CardTitle>
+        <CardDescription>Tags used for filtering (e.g., Organic, Sale).</CardDescription>
       </CardHeader>
       <CardContent>
         <form
@@ -110,30 +136,23 @@ function CreateTagForm({ storeId }: { storeId: string }) {
             e.preventDefault()
             form.handleSubmit()
           }}
-          className="flex gap-4 items-end"
+          className="flex gap-2 items-end"
         >
           <form.Field
             name="name"
-            children={({ state, handleChange, handleBlur }) => (
-              <div className="flex-1 space-y-2">
+            children={({ state, handleChange }) => (
+              <div className="flex-1">
                 <Input
-                  type="text"
                   value={state.value}
                   onChange={(e) => handleChange(e.target.value)}
-                  onBlur={handleBlur}
-                  placeholder="e.g., Color, Size, Material"
+                  placeholder="e.g., Organic"
+                  className="h-9"
                 />
-                {state.meta.errors.length > 0 && state.meta.isTouched && (
-                  <p className="text-sm text-red-500">
-                    {state.meta.errors[0]?.message}
-                  </p>
-                )}
               </div>
             )}
           />
-
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Creating...' : 'Create Tag'}
+          <Button type="submit" disabled={isSubmitting} size="sm">
+            Add
           </Button>
         </form>
       </CardContent>
@@ -141,217 +160,65 @@ function CreateTagForm({ storeId }: { storeId: string }) {
   )
 }
 
-interface TagOption {
-  id: string
-  name: string
-}
+function CreatePresetForm({ onCreated }: { onCreated: () => void }) {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [name, setName] = useState('')
+  const [tagName, setTagName] = useState('')
+  const [options, setOptions] = useState('')
 
-function TagOptionsManager({
-  tag,
-  presets,
-  onPresetChange,
-}: {
-  tag: { id: string; name: string }
-  presets: any[]
-  onPresetChange: () => void
-}) {
-  const [options, setOptions] = useState<Array<TagOption>>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [presetName, setPresetName] = useState('')
-  const [isSavingPreset, setIsSavingPreset] = useState(false)
-  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null)
-
-  // Load existing options
-  useEffect(() => {
-    getTagOptions({ data: { tagId: tag.id } }).then((opts) => {
-      setOptions(opts.map((o: TagOption) => ({ id: o.id, name: o.name })))
-    })
-  }, [tag.id])
-
-  const handleSaveOptions = async (newOptionNames: Array<string>) => {
-    setIsLoading(true)
-    try {
-      const currentNames = options.map((o) => o.name)
-
-      // Find new options that weren't there before
-      const addedNames = newOptionNames.filter(
-        (name) => !currentNames.includes(name),
-      )
-
-      // Find removed options (including edited ones)
-      const removedOptions = options.filter(
-        (o) => !newOptionNames.includes(o.name),
-      )
-
-      // Delete removed/edited options from database
-      if (removedOptions.length > 0) {
-        await Promise.all(
-          removedOptions.map((opt) =>
-            deleteTagOption({ data: { optionId: opt.id } }),
-          ),
-        )
-      }
-
-      // Create new options in database
-      if (addedNames.length > 0) {
-        await createTagOptions({
-          data: {
-            tagId: tag.id,
-            options: addedNames,
-          },
-        })
-      }
-
-      // Refresh options from database to get new IDs
-      const refreshedOptions = await getTagOptions({ data: { tagId: tag.id } })
-      setOptions(
-        refreshedOptions.map((o: TagOption) => ({ id: o.id, name: o.name })),
-      )
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleSaveAsPreset = async () => {
-    if (!presetName.trim() || options.length === 0) return
-    setIsSavingPreset(true)
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!name || !tagName || !options) return
+    setIsSubmitting(true)
     try {
       await createTagPreset({
         data: {
-          name: presetName,
-          tagName: tag.name,
-          options: options.map((o) => o.name),
-        },
+          name,
+          tagName,
+          options: options.split(',').map(o => o.trim()).filter(Boolean),
+        }
       })
-      setPresetName('')
-      onPresetChange()
+      setName('')
+      setTagName('')
+      setOptions('')
+      onCreated()
     } finally {
-      setIsSavingPreset(false)
+      setIsSubmitting(false)
     }
   }
-
-  const handleLoadPreset = async (presetId: string | null) => {
-    if (!presetId) return
-    const preset = presets.find((p) => p.id === presetId)
-    if (!preset) return
-    setSelectedPresetId(presetId)
-    setIsLoading(true)
-    try {
-      await handleSaveOptions(preset.options)
-    } finally {
-      setIsLoading(false)
-      setSelectedPresetId(null)
-    }
-  }
-
-  const handleDeletePreset = async (presetId: string) => {
-    if (!confirm('Are you sure you want to delete this preset?')) return
-    try {
-      await deleteTagPreset({ data: { presetId } })
-      onPresetChange()
-    } catch (e) {
-      console.error(e)
-    }
-  }
-
-  const filteredPresets = presets.filter((p) => p.tagName === tag.name)
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <div>
-          <CardTitle className="font-bold text-xl">
-            {tag.name}
-            {isLoading && (
-              <span className="ml-2 text-sm text-muted animate-pulse font-normal italic">
-                Saving...
-              </span>
-            )}
-          </CardTitle>
-          <CardDescription>Options for {tag.name}</CardDescription>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {filteredPresets.length > 0 && (
-            <Select
-              value={selectedPresetId ?? undefined}
-              onValueChange={handleLoadPreset}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue>Load Preset</SelectValue>
-              </SelectTrigger>
-              <SelectContent className="max-h-[300px]">
-                {filteredPresets.map((p) => (
-                  <SelectItem
-                    key={p.id}
-                    value={p.id}
-                    className="cursor-pointer group flex items-start justify-between gap-4 py-2"
-                  >
-                    <div className="flex flex-col gap-0.5">
-                      <span className="font-semibold text-sm">{p.name}</span>
-                      <span className="text-[10px] text-muted-foreground line-clamp-1">
-                        {p.options.join(', ')}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleDeletePreset(p.id)
-                      }}
-                      className="p-1 opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity shrink-0"
-                    >
-                      <HugeiconsIcon icon={Trash} size={14} />
-                    </button>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
+      <CardHeader>
+        <CardTitle className="text-lg">New Variant Preset</CardTitle>
+        <CardDescription>Common options for products (e.g., Standard Sizes).</CardDescription>
       </CardHeader>
-
-      <CardContent className="space-y-6 pt-4">
-        <TagsInput
-          value={options.map((o) => o.name)}
-          onValueChange={handleSaveOptions}
-          editable
-          addOnPaste
-        >
-          <TagsInputList className="rounded-none min-h-[100px] border-2">
-            {options.map((option) => (
-              <TagsInputItem
-                key={option.id}
-                value={option.name}
-                className="rounded-none border-primary/20"
-              >
-                {option.name}
-              </TagsInputItem>
-            ))}
-            <TagsInputInput
-              placeholder={`Add ${tag.name.toLowerCase()} option...`}
-            />
-          </TagsInputList>
-        </TagsInput>
-
-        <div className="flex gap-2 items-center pt-4 border-t">
-          <Input
-            value={presetName}
-            onChange={(e) => setPresetName(e.target.value)}
-            placeholder="Preset Name (e.g. Standard Sizes)"
-            className="max-w-[250px]"
+      <CardContent>
+        <form onSubmit={handleSave} className="space-y-3">
+          <Input 
+            value={name} 
+            onChange={e => setName(e.target.value)} 
+            placeholder="Preset Name (e.g., Clothing Sizes)" 
+            className="h-9 text-xs"
           />
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleSaveAsPreset}
-            disabled={isSavingPreset || !presetName || options.length === 0}
-            className="gap-2"
-          >
-            <HugeiconsIcon icon={Save} size={16} />
-            {isSavingPreset ? 'Saving...' : 'Save as Preset'}
-          </Button>
-        </div>
+          <div className="flex gap-2">
+            <Input 
+              value={tagName} 
+              onChange={e => setTagName(e.target.value)} 
+              placeholder="Option Name (e.g., Size)" 
+              className="h-9 text-xs flex-1"
+            />
+            <Input 
+              value={options} 
+              onChange={e => setOptions(e.target.value)} 
+              placeholder="Values (S, M, L)" 
+              className="h-9 text-xs flex-[2]"
+            />
+            <Button type="submit" disabled={isSubmitting} size="sm">
+              <HugeiconsIcon icon={Save} size={14} />
+            </Button>
+          </div>
+        </form>
       </CardContent>
     </Card>
   )

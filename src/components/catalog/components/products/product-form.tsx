@@ -10,23 +10,35 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Card } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
 import { createProduct } from '@/server/queries/products'
+import { HugeiconsIcon } from '@hugeicons/react'
+import { PlusSignIcon, Delete02Icon, ImageAdd01Icon } from '@hugeicons/core-free-icons'
 
 export type WizardStep = 1 | 2 | 3 | 4 | 5
 
-export interface SelectedAxis {
-  id: string
+export interface VariantOptionInput {
   name: string
-  values: Array<{ id: string; name: string }> // tag options with IDs
+  values: string[]
 }
 
 export interface VariantCombination {
-  key: string
-  parts: Array<{ axisName: string; value: string; tagOptionId: string }>
+  sku: string
+  parts: Record<string, string> // e.g. { "Color": "Red", "Size": "M" }
   label: string
   price: string
-  quantity: number
+  inventory: number
   selected: boolean
+}
+
+export interface MediaInput {
+  url: string
+  name?: string
+  variantValue?: {
+    optionName: string
+    value: string
+  }
 }
 
 export interface WizardData {
@@ -42,26 +54,29 @@ export interface WizardData {
   // Step 3
   tagIds: string[]
   // Step 4
-  selectedAxes: SelectedAxis[]
+  options: VariantOptionInput[]
   combinations: VariantCombination[]
+  media: MediaInput[]
 }
 
 const STEP_LABELS: Record<WizardStep, string> = {
   1: 'Basic Info',
   2: 'Pricing',
   3: 'Tags',
-  4: 'Variants',
+  4: 'Variants & Media',
   5: 'Review',
 }
 
 export function ProductForm({
   categories,
   storeTags,
+  tagPresets = [],
   onCreated,
   onCancel,
 }: {
   categories: any[]
   storeTags: any[]
+  tagPresets?: any[]
   onCreated: () => void
   onCancel?: () => void
 }) {
@@ -76,11 +91,11 @@ export function ProductForm({
     price: '',
     originalPrice: '',
     tagIds: [],
-    selectedAxes: [],
+    options: [],
     combinations: [],
+    media: [],
   })
 
-  // Subcategories for the selected category
   const subcategories = useMemo(() => {
     if (!data.categoryId) return []
     const cat = categories.find((c) => c.id === data.categoryId)
@@ -95,11 +110,11 @@ export function ProductForm({
       case 1:
         return data.name.trim().length > 0 && data.categoryId.length > 0
       case 2:
-        return data.price.trim().length > 0 && Number(data.price) > 0
+        return data.price.trim().length > 0 && Number(data.price) >= 0
       case 3:
-        return true // tags are optional
+        return true
       case 4:
-        return true // variants are optional
+        return true
       case 5:
         return true
       default:
@@ -120,13 +135,17 @@ export function ProductForm({
           originalPrice: data.originalPrice || undefined,
           status: data.status,
           tagIds: data.tagIds,
+          options: data.options,
           variants: data.combinations
             .filter((c) => c.selected)
             .map((combo) => ({
+              name: combo.label,
+              sku: combo.sku || undefined,
               price: combo.price || data.price,
-              quantity: combo.quantity,
-              tagOptionIds: combo.parts.map((p) => p.tagOptionId),
+              inventory: combo.inventory,
+              optionValues: combo.parts,
             })),
+          media: data.media,
         },
       })
       onCreated()
@@ -153,7 +172,7 @@ export function ProductForm({
         </div>
       </div>
 
-      <div className="min-h-[400px]">
+      <div className="min-h-100">
         {step === 1 && (
           <StepBasicInfo
             data={data}
@@ -167,7 +186,7 @@ export function ProductForm({
           <StepTags data={data} onChange={update} storeTags={storeTags} />
         )}
         {step === 4 && (
-          <StepVariants data={data} onChange={update} storeTags={storeTags} />
+          <StepVariants data={data} onChange={update} tagPresets={tagPresets} />
         )}
         {step === 5 && (
           <StepReview
@@ -366,12 +385,6 @@ function StepPricing({
             className="pl-7"
           />
         </div>
-        {data.originalPrice && Number(data.originalPrice) > 0 && data.price && (
-          <p className="text-xs text-muted-foreground">
-            Customers will see the compare-at price crossed out next to the
-            actual price.
-          </p>
-        )}
       </div>
     </div>
   )
@@ -387,13 +400,12 @@ function StepTags({
   storeTags: Array<{
     id: string
     name: string
-    tagOptions: Array<{ id: string; name: string }>
   }>
 }) {
   if (storeTags.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground text-sm">
-        No tags created yet. Go to the Tags tab to create some first.
+        No tags created yet.
       </div>
     )
   }
@@ -403,50 +415,31 @@ function StepTags({
       <p className="text-xs text-muted-foreground">
         Select tags to attach to this product.
       </p>
-      {storeTags.map((tag) => {
-        const isSelected = data.tagIds.includes(tag.id)
-        return (
-          <button
-            key={tag.id}
-            type="button"
-            onClick={() => {
-              if (isSelected) {
-                onChange({ tagIds: data.tagIds.filter((id) => id !== tag.id) })
-              } else {
-                onChange({ tagIds: [...data.tagIds, tag.id] })
-              }
-            }}
-            className={`w-full text-left px-3 py-2.5 rounded-md border transition-colors ${
-              isSelected
-                ? 'border-foreground bg-foreground/5'
-                : 'border-border hover:border-foreground/30'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">{tag.name}</span>
-              {isSelected && (
-                <span className="text-[10px] font-medium text-foreground/60">
-                  ✓ Selected
-                </span>
-              )}
-            </div>
-            {tag.tagOptions.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-1.5">
-                {tag.tagOptions.slice(0, 8).map((opt) => (
-                  <Badge key={opt.id} variant="outline" className="text-[10px]">
-                    {opt.name}
-                  </Badge>
-                ))}
-                {tag.tagOptions.length > 8 && (
-                  <Badge variant="outline" className="text-[10px]">
-                    +{tag.tagOptions.length - 8} more
-                  </Badge>
-                )}
-              </div>
-            )}
-          </button>
-        )
-      })}
+      <div className="flex flex-wrap gap-2">
+        {storeTags.map((tag) => {
+          const isSelected = data.tagIds.includes(tag.id)
+          return (
+            <button
+              key={tag.id}
+              type="button"
+              onClick={() => {
+                if (isSelected) {
+                  onChange({ tagIds: data.tagIds.filter((id) => id !== tag.id) })
+                } else {
+                  onChange({ tagIds: [...data.tagIds, tag.id] })
+                }
+              }}
+              className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
+                isSelected
+                  ? 'border-foreground bg-foreground text-background'
+                  : 'border-border hover:border-foreground/30'
+              }`}
+            >
+              {tag.name}
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -459,231 +452,334 @@ function cartesianProduct<T>(arrays: T[][]): T[][] {
   )
 }
 
-function generateCombinations(
-  axes: SelectedAxis[],
-  basePrice: string,
-): VariantCombination[] {
-  if (axes.length === 0) return []
-
-  const valueArrays = axes.map((axis) =>
-    axis.values.map((v) => ({ axisName: axis.name, value: v.name, tagOptionId: v.id })),
-  )
-
-  const product = cartesianProduct(valueArrays)
-
-  return product.map((parts) => ({
-    key: parts.map((p) => `${p.axisName}:${p.tagOptionId}`).join('|'),
-    parts,
-    label: parts.map((p) => p.value).join(' / '),
-    price: basePrice || '0',
-    quantity: 0,
-    selected: true,
-  }))
-}
-
 function StepVariants({
   data,
   onChange,
-  storeTags,
+  tagPresets = [],
 }: {
   data: WizardData
   onChange: (p: Partial<WizardData>) => void
-  storeTags: Array<{
-    id: string
-    name: string
-    tagOptions: Array<{ id: string; name: string }>
-  }>
+  tagPresets?: any[]
 }) {
-  const availableAxes = storeTags.filter(
-    (t) => t.tagOptions.length > 0 && data.tagIds.includes(t.id),
-  )
+  const [newOptionName, setNewOptionName] = useState('')
+  const [newOptionValues, setNewOptionValues] = useState('')
 
-  if (availableAxes.length === 0) {
-    return (
-      <div className="text-center py-8 text-muted-foreground text-sm">
-        <p>No variant attributes available.</p>
-        <p className="mt-1">
-          Select tags with options in Step 3 to create variant combinations.
-        </p>
-      </div>
+  const addOption = () => {
+    if (!newOptionName || !newOptionValues) return
+    const values = newOptionValues.split(',').map((v) => v.trim()).filter(Boolean)
+    if (values.length === 0) return
+
+    const nextOptions = [...data.options, { name: newOptionName, values }]
+    const combos = generateCombinations(nextOptions, data.price)
+    onChange({ options: nextOptions, combinations: combos })
+    setNewOptionName('')
+    setNewOptionValues('')
+  }
+
+  const usePreset = (preset: any) => {
+    const nextOptions = [...data.options, { name: preset.tagName, values: preset.options }]
+    const combos = generateCombinations(nextOptions, data.price)
+    onChange({ options: nextOptions, combinations: combos })
+  }
+
+  const removeOption = (index: number) => {
+    const nextOptions = data.options.filter((_, i) => i !== index)
+    const combos = generateCombinations(nextOptions, data.price)
+    onChange({ options: nextOptions, combinations: combos })
+  }
+
+  const generateCombinations = (options: VariantOptionInput[], basePrice: string): VariantCombination[] => {
+    if (options.length === 0) return []
+
+    const valueArrays = options.map((opt) => 
+      opt.values.map((v) => ({ optionName: opt.name, value: v }))
     )
-  }
 
-  const toggleAxis = (tag: {
-    id: string
-    name: string
-    tagOptions: Array<{ id: string; name: string }>
-  }) => {
-    const isActive = data.selectedAxes.some((a) => a.id === tag.id)
-    let nextAxes: SelectedAxis[]
+    const product = cartesianProduct(valueArrays)
 
-    if (isActive) {
-      nextAxes = data.selectedAxes.filter((a) => a.id !== tag.id)
-    } else {
-      nextAxes = [
-        ...data.selectedAxes,
-        {
-          id: tag.id,
-          name: tag.name,
-          values: tag.tagOptions.map((o) => ({ id: o.id, name: o.name })),
-        },
-      ]
-    }
+    return product.map((parts) => {
+      const partsMap: Record<string, string> = {}
+      parts.forEach((p) => {
+        partsMap[p.optionName] = p.value
+      })
 
-    const combos = generateCombinations(nextAxes, data.price)
-    onChange({ selectedAxes: nextAxes, combinations: combos })
-  }
+      const label = parts.map((p) => p.value).join(' / ')
 
-  const updateCombination = (
-    key: string,
-    partial: Partial<VariantCombination>,
-  ) => {
-    onChange({
-      combinations: data.combinations.map((c) =>
-        c.key === key ? { ...c, ...partial } : c,
-      ),
+      // Try to find a match in existing data.combinations to preserve entered data
+      const existing = data.combinations.find((c) => {
+        // Must match all parts in the new combination (handles removal and exact matches)
+        return Object.entries(partsMap).every(([k, v]) => c.parts[k] === v)
+      })
+
+      if (existing) {
+        return {
+          ...existing,
+          label,
+        }
+      }
+
+      return {
+        sku: '',
+        parts: partsMap,
+        label,
+        price: basePrice || '0',
+        inventory: 0,
+        selected: true,
+      }
     })
   }
 
-  const toggleAll = (selected: boolean) => {
-    onChange({
-      combinations: data.combinations.map((c) => ({ ...c, selected })),
-    })
+  const updateCombination = (index: number, partial: Partial<VariantCombination>) => {
+    const nextCombos = [...data.combinations]
+    nextCombos[index] = { ...nextCombos[index], ...partial }
+    onChange({ combinations: nextCombos })
   }
 
-  const selectedCount = data.combinations.filter((c) => c.selected).length
+  const addMedia = () => {
+    onChange({ media: [...data.media, { url: '' }] })
+  }
+
+  const updateMedia = (index: number, partial: Partial<MediaInput>) => {
+    const nextMedia = [...data.media]
+    nextMedia[index] = { ...nextMedia[index], ...partial }
+    onChange({ media: nextMedia })
+  }
+
+  const removeMedia = (index: number) => {
+    onChange({ media: data.media.filter((_, i) => i !== index) })
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <label className="text-xs font-medium">Select Variant Attributes</label>
-        <p className="text-xs text-muted-foreground">
-          Choose which tag attributes to combine into product variants.
-        </p>
-        <div className="flex flex-wrap gap-2 mt-2">
-          {availableAxes.map((tag) => {
-            const isActive = data.selectedAxes.some((a) => a.id === tag.id)
-            return (
-              <button
-                key={tag.id}
-                type="button"
-                onClick={() => toggleAxis(tag)}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
-                  isActive
-                    ? 'bg-foreground text-background border-foreground'
-                    : 'border-border hover:border-foreground/30'
-                }`}
+    <div className="space-y-8">
+      {/* Options Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Label className="text-sm font-semibold">Product Options</Label>
+          <span className="text-[10px] text-muted-foreground">e.g., Color, Size</span>
+        </div>
+
+        <div className="space-y-3">
+          {data.options.map((opt, i) => (
+            <Card key={i} className="p-3 relative group">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={() => removeOption(i)}
               >
-                {tag.name}
-                <span className="ml-1 opacity-60">
-                  ({tag.tagOptions.length})
-                </span>
-              </button>
-            )
-          })}
+                <HugeiconsIcon icon={Delete02Icon} size={14} />
+              </Button>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-bold">{opt.name}</span>
+                <div className="flex flex-wrap gap-1">
+                  {opt.values.map((v, vi) => (
+                    <Badge key={vi} variant="secondary" className="text-[10px]">
+                      {v}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </Card>
+          ))}
+
+          {data.options.length < 3 && (
+            <div className="space-y-4">
+              <div className="flex gap-2 items-end border p-3 rounded-md bg-muted/30">
+                <div className="flex-1 space-y-1">
+                  <Label className="text-[10px]">Option Name</Label>
+                  <Input
+                    value={newOptionName}
+                    onChange={(e) => setNewOptionName(e.target.value)}
+                    placeholder="Size"
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="flex-2 space-y-1">
+                  <Label className="text-[10px]">Values (comma separated)</Label>
+                  <Input
+                    value={newOptionValues}
+                    onChange={(e) => setNewOptionValues(e.target.value)}
+                    placeholder="S, M, L"
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <Button onClick={addOption} size="sm" className="h-8">
+                  <HugeiconsIcon icon={PlusSignIcon} size={14} />
+                </Button>
+              </div>
+
+              {tagPresets.length > 0 && (
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] text-muted-foreground">Use a Preset:</Label>
+                  <div className="flex flex-wrap gap-1">
+                    {tagPresets.map((p) => (
+                      <Button
+                        key={p.id}
+                        variant="outline"
+                        size="sm"
+                        className="h-6 text-[10px] px-2 rounded-full"
+                        onClick={() => usePreset(p)}
+                      >
+                        {p.name}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
+      {/* Combinations Section */}
       {data.combinations.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-medium">
-              Variant Combinations ({selectedCount} of{' '}
-              {data.combinations.length} selected)
-            </label>
-            <div className="flex gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 text-[10px] px-2"
-                onClick={() => toggleAll(true)}
-              >
-                Select All
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 text-[10px] px-2"
-                onClick={() => toggleAll(false)}
-              >
-                Clear
-              </Button>
-            </div>
-          </div>
-
-          <div className="border rounded-md overflow-hidden">
-            <div
-              className="grid gap-2 text-[10px] text-muted-foreground font-medium px-3 py-2 bg-muted/50 border-b"
-              style={{
-                gridTemplateColumns: `auto ${data.selectedAxes.map(() => '1fr').join(' ')} 80px 80px`,
-              }}
-            >
+        <div className="space-y-4">
+          <Label className="text-sm font-semibold">Variants ({data.combinations.length})</Label>
+          <div className="border rounded-md overflow-hidden text-xs">
+            <div className="grid grid-cols-[1fr_2fr_1fr_1fr_auto] gap-2 px-3 py-2 bg-muted/50 border-b font-medium text-[10px] text-muted-foreground uppercase tracking-wider">
+              <span>Label</span>
+              <span>SKU</span>
+              <span>Price</span>
+              <span>Inventory</span>
               <span></span>
-              {data.selectedAxes.map((axis) => (
-                <span key={axis.id}>{axis.name}</span>
-              ))}
-              <span>Price ($)</span>
-              <span>Stock</span>
             </div>
-
-            <div className="max-h-[300px] overflow-y-auto">
-              {data.combinations.map((combo) => (
-                <div
-                  key={combo.key}
-                  className={`grid gap-2 items-center px-3 py-1.5 border-b last:border-b-0 transition-opacity ${combo.selected ? '' : 'opacity-40'}`}
-                  style={{
-                    gridTemplateColumns: `auto ${data.selectedAxes.map(() => '1fr').join(' ')} 80px 80px`,
-                  }}
-                >
+            <div className="max-h-75 overflow-y-auto">
+              {data.combinations.map((combo, i) => (
+                <div key={i} className={`grid grid-cols-[1fr_2fr_1fr_1fr_auto] gap-2 items-center px-3 py-2 border-b last:border-b-0 ${!combo.selected ? 'opacity-40' : ''}`}>
+                  <span className="font-medium truncate">{combo.label}</span>
+                  <Input
+                    value={combo.sku}
+                    onChange={(e) => updateCombination(i, { sku: e.target.value })}
+                    placeholder="SKU-123"
+                    className="h-7 text-[10px]"
+                    disabled={!combo.selected}
+                  />
+                  <Input
+                    type="number"
+                    value={combo.price}
+                    onChange={(e) => updateCombination(i, { price: e.target.value })}
+                    className="h-7 text-[10px]"
+                    disabled={!combo.selected}
+                  />
+                  <Input
+                    type="number"
+                    value={combo.inventory}
+                    onChange={(e) => updateCombination(i, { inventory: parseInt(e.target.value) || 0 })}
+                    className="h-7 text-[10px]"
+                    disabled={!combo.selected}
+                  />
                   <input
                     type="checkbox"
                     checked={combo.selected}
-                    onChange={(e) =>
-                      updateCombination(combo.key, {
-                        selected: e.target.checked,
-                      })
-                    }
+                    onChange={(e) => updateCombination(i, { selected: e.target.checked })}
                     className="h-3.5 w-3.5 rounded accent-foreground"
-                  />
-                  {combo.parts.map((part) => (
-                    <span key={part.axisName} className="text-xs truncate">
-                      {part.value}
-                    </span>
-                  ))}
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={combo.price}
-                    onChange={(e) =>
-                      updateCombination(combo.key, { price: e.target.value })
-                    }
-                    className="h-7 text-xs py-0"
-                    disabled={!combo.selected}
-                  />
-                  <Input
-                    type="number"
-                    step="1"
-                    min="0"
-                    value={combo.quantity}
-                    onChange={(e) =>
-                      updateCombination(combo.key, {
-                        quantity: parseInt(e.target.value) || 0,
-                      })
-                    }
-                    className="h-7 text-xs py-0"
-                    disabled={!combo.selected}
                   />
                 </div>
               ))}
             </div>
           </div>
-
-          <p className="text-xs text-muted-foreground text-right">
-            {selectedCount} variant{selectedCount !== 1 ? 's' : ''} will be
-            created
-          </p>
         </div>
       )}
+
+      {/* Media Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Label className="text-sm font-semibold">Media</Label>
+          <Button variant="outline" size="sm" onClick={addMedia} className="h-7 text-[10px]">
+            <HugeiconsIcon icon={ImageAdd01Icon} size={14} className="mr-1" />
+            Add Image URL
+          </Button>
+        </div>
+        <div className="grid grid-cols-1 gap-3">
+          {data.media.map((m, i) => (
+            <Card key={i} className="p-3 flex gap-4 items-start">
+              <div className="h-16 w-16 rounded bg-muted flex items-center justify-center overflow-hidden shrink-0">
+                {m.url ? (
+                  <img src={m.url} alt="preview" className="h-full w-full object-cover" />
+                ) : (
+                  <HugeiconsIcon icon={ImageAdd01Icon} size={20} className="text-muted-foreground/50" />
+                )}
+              </div>
+              <div className="flex-1 grid grid-cols-2 gap-2">
+                <div className="col-span-2 space-y-1">
+                  <Label className="text-[10px]">Image URL</Label>
+                  <Input
+                    value={m.url}
+                    onChange={(e) => updateMedia(i, { url: e.target.value })}
+                    placeholder="https://example.com/image.jpg"
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Link to Option (Optional)</Label>
+                  <Select
+                    value={m.variantValue?.optionName || 'none'}
+                    onValueChange={(v) => {
+                      if (!v || v === 'none') {
+                        updateMedia(i, { variantValue: undefined })
+                      } else {
+                        updateMedia(i, { variantValue: { optionName: v, value: '' } })
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-[10px]">
+                      <SelectValue>
+                        {m.variantValue?.optionName || 'None'}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {data.options.map((opt) => (
+                        <SelectItem key={opt.name} value={opt.name}>
+                          {opt.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {m.variantValue && (
+                  <div className="space-y-1">
+                    <Label className="text-[10px]">Value</Label>
+                    <Select
+                      value={m.variantValue.value}
+                      onValueChange={(v) => {
+                        if (v) {
+                          updateMedia(i, {
+                            variantValue: { ...m.variantValue!, value: v },
+                          })
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="h-8 text-[10px]">
+                        <SelectValue>
+                          {m.variantValue.value || 'Select value'}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {data.options
+                          .find((o) => o.name === m.variantValue?.optionName)
+                          ?.values.map((val) => (
+                            <SelectItem key={val} value={val}>
+                              {val}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => removeMedia(i)}
+                className="h-8 w-8 text-destructive"
+              >
+                <HugeiconsIcon icon={Delete02Icon} size={14} />
+              </Button>
+            </Card>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
@@ -694,120 +790,79 @@ function StepReview({
   storeTags,
 }: {
   data: WizardData
-  categories: Array<{
-    id: string
-    name: string
-    subcategories: Array<{ id: string; name: string }>
-  }>
-  storeTags: Array<{ id: string; name: string }>
+  categories: any[]
+  storeTags: any[]
 }) {
   const category = categories.find((c) => c.id === data.categoryId)
-  const subcategory = category?.subcategories.find(
-    (s) => s.id === data.subcategoryId,
-  )
+  const subcategory = category?.subcategories.find((s: any) => s.id === data.subcategoryId)
   const selectedTags = storeTags.filter((t) => data.tagIds.includes(t.id))
-  const selectedCombinations = data.combinations.filter((c) => c.selected)
+  const activeVariants = data.combinations.filter((c) => c.selected)
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-sm font-semibold">Review your product</h3>
-
-      <div className="space-y-3 text-xs">
-        <div className="flex justify-between py-1.5 border-b">
-          <span className="text-muted-foreground">Name</span>
-          <span className="font-medium">{data.name}</span>
-        </div>
-
-        {data.description && (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 gap-8">
+        <div className="space-y-4 text-xs">
           <div className="flex justify-between py-1.5 border-b">
-            <span className="text-muted-foreground">Description</span>
-            <span className="font-medium text-right max-w-[200px] line-clamp-2">
-              {data.description}
-            </span>
+            <span className="text-muted-foreground">Product Name</span>
+            <span className="font-semibold">{data.name}</span>
           </div>
-        )}
-
-        <div className="flex justify-between py-1.5 border-b">
-          <span className="text-muted-foreground">Category</span>
-          <span className="font-medium">
-            {category?.name || '—'}
-            {subcategory ? ` / ${subcategory.name}` : ''}
-          </span>
-        </div>
-
-        <div className="flex justify-between py-1.5 border-b">
-          <span className="text-muted-foreground">Status</span>
-          <Badge
-            variant={data.status === 'active' ? 'default' : 'secondary'}
-            className="text-[10px]"
-          >
-            {data.status}
-          </Badge>
-        </div>
-
-        <div className="flex justify-between py-1.5 border-b">
-          <span className="text-muted-foreground">Price</span>
-          <span className="font-mono font-semibold">
-            ${Number(data.price).toFixed(2)}
-          </span>
-        </div>
-
-        {data.originalPrice && Number(data.originalPrice) > 0 && (
           <div className="flex justify-between py-1.5 border-b">
-            <span className="text-muted-foreground">Compare-at</span>
-            <span className="font-mono line-through text-muted-foreground">
-              ${Number(data.originalPrice).toFixed(2)}
-            </span>
+            <span className="text-muted-foreground">Base Price</span>
+            <span className="font-semibold">${Number(data.price).toFixed(2)}</span>
           </div>
-        )}
-
-        {selectedTags.length > 0 && (
           <div className="flex justify-between py-1.5 border-b">
-            <span className="text-muted-foreground">Tags</span>
-            <div className="flex flex-wrap gap-1 justify-end">
-              {selectedTags.map((t) => (
-                <Badge key={t.id} variant="outline" className="text-[10px]">
-                  {t.name}
-                </Badge>
-              ))}
+            <span className="text-muted-foreground">Category</span>
+            <span>{category?.name} {subcategory ? `/ ${subcategory.name}` : ''}</span>
+          </div>
+          <div className="flex justify-between py-1.5 border-b">
+            <span className="text-muted-foreground">Status</span>
+            <Badge variant="outline" className="text-[10px] capitalize">{data.status}</Badge>
+          </div>
+          {selectedTags.length > 0 && (
+            <div className="flex justify-between py-1.5 border-b">
+              <span className="text-muted-foreground">Tags</span>
+              <div className="flex gap-1">
+                {selectedTags.map(t => (
+                  <Badge key={t.id} variant="secondary" className="text-[10px]">{t.name}</Badge>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
-
-        <div className="flex justify-between py-1.5 border-b">
-          <span className="text-muted-foreground">Variants</span>
-          <span className="font-medium">
-            {selectedCombinations.length} combination
-            {selectedCombinations.length !== 1 ? 's' : ''} across{' '}
-            {data.selectedAxes.length} attribute
-            {data.selectedAxes.length !== 1 ? 's' : ''}
-          </span>
+          )}
         </div>
 
-        {selectedCombinations.length > 0 && (
-          <div className="pl-4 space-y-1">
-            {selectedCombinations.map((combo) => (
-              <div
-                key={combo.key}
-                className="flex justify-between py-1 border-b"
-              >
-                <div className="flex flex-col">
-                  <span>{combo.label}</span>
-                  <div className="flex gap-1">
-                    {combo.parts.map((p) => (
-                      <span key={p.tagOptionId} className="text-[10px] text-muted-foreground bg-muted px-1 rounded">
-                        {p.axisName}: {p.value}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <span className="font-mono text-muted-foreground">
-                  ${Number(combo.price).toFixed(2)} · {combo.quantity} qty
-                </span>
+        <div className="space-y-4">
+          <Label className="text-xs font-semibold">Images ({data.media.length})</Label>
+          <div className="flex flex-wrap gap-2">
+            {data.media.map((m, i) => (
+              <div key={i} className="h-12 w-12 rounded border bg-muted overflow-hidden">
+                <img src={m.url} alt="review" className="h-full w-full object-cover" />
+              </div>
+            ))}
+            {data.media.length === 0 && <span className="text-xs text-muted-foreground">No images added</span>}
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <Label className="text-xs font-semibold">Variants ({activeVariants.length})</Label>
+        <div className="border rounded-md overflow-hidden text-[10px]">
+          <div className="grid grid-cols-4 gap-2 px-3 py-1.5 bg-muted/50 border-b font-medium text-muted-foreground">
+            <span>Label</span>
+            <span>SKU</span>
+            <span>Price</span>
+            <span>Inventory</span>
+          </div>
+          <div className="max-h-50 overflow-y-auto">
+            {activeVariants.map((v, i) => (
+              <div key={i} className="grid grid-cols-4 gap-2 px-3 py-1.5 border-b last:border-b-0">
+                <span className="font-medium">{v.label}</span>
+                <span className="text-muted-foreground">{v.sku || '—'}</span>
+                <span>${Number(v.price).toFixed(2)}</span>
+                <span>{v.inventory}</span>
               </div>
             ))}
           </div>
-        )}
+        </div>
       </div>
     </div>
   )
